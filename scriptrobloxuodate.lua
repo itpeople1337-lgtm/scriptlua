@@ -46,6 +46,11 @@ local ColorMap = {
 
 local DefaultConfig = {
     Aimbot = false,
+    TriggerBot = false,
+    SpinBot = false,
+    SpinSpeed = 50,
+    HitboxExpander = false,
+    HitboxSize = 5,
     WallCheck = true,
     TeamCheck = false,
     AliveCheck = true,
@@ -429,11 +434,37 @@ table.insert(System.Connections, RunService.RenderStepped:Connect(function()
             FOVCircle.Visible = false
         end
 
-        -- Aimbot Target Update
-        if Config.Aimbot then
-            local LockedTarget = GetTarget()
-            if LockedTarget then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, LockedTarget.Position)
+        -- Aimbot & TriggerBot Target Update
+        local LockedTarget = GetTarget()
+        if Config.Aimbot and LockedTarget then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, LockedTarget.Position)
+        end
+        if Config.TriggerBot and LockedTarget then
+            pcall(function()
+                if mouse1click then mouse1click() else mouse1press() task.wait(0.01) mouse1release() end
+            end)
+        end
+        
+        -- SpinBot & Hitbox Expander (FITUR BRUTAL)
+        local myChar = LocalPlayer.Character
+        if Config.SpinBot and myChar and myChar:FindFirstChild("HumanoidRootPart") then
+            myChar.HumanoidRootPart.CFrame = myChar.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(Config.SpinSpeed), 0)
+        end
+        
+        if Config.HitboxExpander then
+            for player, _ in pairs(PlayerCache) do
+                local char = player.Character
+                if char then
+                    local head = char:FindFirstChild("Head")
+                    local hum = char:FindFirstChild("Humanoid")
+                    if head and hum and hum.Health > 0 then
+                        if not (Config.TeamCheck and player.Team == LocalPlayer.Team) then
+                            head.Size = Vector3.new(Config.HitboxSize, Config.HitboxSize, Config.HitboxSize)
+                            head.Transparency = 0.5
+                            head.CanCollide = false
+                        end
+                    end
+                end
             end
         end
 
@@ -475,6 +506,41 @@ pcall(function()
     ScreenGui.Parent = TargetUI
 end)
 
+-- ANIMASI AWAL BUKA (BY REVAL)
+local SplashFrame = Instance.new("Frame", ScreenGui)
+SplashFrame.Size = UDim2.new(1, 0, 1, 0)
+SplashFrame.BackgroundColor3 = Color3.fromRGB(10, 5, 5)
+SplashFrame.ZIndex = 99999
+
+local SplashText = Instance.new("TextLabel", SplashFrame)
+SplashText.Size = UDim2.new(1, 0, 1, 0)
+SplashText.BackgroundTransparency = 1
+SplashText.Text = "ALLVESZ V10 BRUTAL EDITION\n★ BY REVAL ★"
+SplashText.TextColor3 = Color3.fromRGB(255, 30, 30)
+SplashText.Font = Enum.Font.GothamBlack
+SplashText.TextSize = 1
+SplashText.ZIndex = 100000
+
+local SplashGlow = Instance.new("UIStroke", SplashText)
+SplashGlow.Color = Color3.fromRGB(200, 0, 0)
+SplashGlow.Thickness = 3
+SplashGlow.Transparency = 1
+
+local TweenSplash = TweenService:Create(SplashText, TweenInfo.new(1.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {TextSize = 50})
+TweenSplash:Play()
+TweenService:Create(SplashGlow, TweenInfo.new(1.5), {Transparency = 0}):Play()
+
+task.spawn(function()
+    TweenSplash.Completed:Wait()
+    task.wait(1.5)
+    TweenService:Create(SplashText, TweenInfo.new(1, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {TextSize = 1}):Play()
+    TweenService:Create(SplashGlow, TweenInfo.new(1), {Transparency = 1}):Play()
+    local fadeOut = TweenService:Create(SplashFrame, TweenInfo.new(1, Enum.EasingStyle.Linear), {BackgroundTransparency = 1})
+    fadeOut:Play()
+    fadeOut.Completed:Wait()
+    SplashFrame:Destroy()
+end)
+
 local ToggleButton = Instance.new("ImageButton", ScreenGui)
 ToggleButton.Size = UDim2.new(0, 50, 0, 50)
 ToggleButton.Position = UDim2.new(0, 20, 0.5, -25)
@@ -484,7 +550,7 @@ ToggleButton.Active = true
 ToggleButton.Selectable = true
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(1, 0)
 local ToggleStroke = Instance.new("UIStroke", ToggleButton)
-ToggleStroke.Color = Color3.fromRGB(160, 30, 255)
+ToggleStroke.Color = Color3.fromRGB(255, 30, 30)
 ToggleStroke.Thickness = 2
 task.spawn(function()
     pcall(function()
@@ -494,20 +560,36 @@ task.spawn(function()
 end)
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 600, 0, 420)
+MainFrame.Size = UDim2.new(0, 0, 0, 0)
 MainFrame.Position = UDim2.new(0.5, -300, 0.5, -210)
-MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 8, 8)
+MainFrame.BackgroundTransparency = 0.1
 MainFrame.Visible = false
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.ClipsDescendants = true
 
-ToggleButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+local isMenuOpen = false
+local function ToggleMenu()
+    isMenuOpen = not isMenuOpen
+    if isMenuOpen then
+        MainFrame.Visible = true
+        MainFrame.ClipsDescendants = false
+        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 600, 0, 420)}):Play()
+    else
+        MainFrame.ClipsDescendants = true
+        local tw = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)})
+        tw:Play()
+        tw.Completed:Wait()
+        if not isMenuOpen then MainFrame.Visible = false end
+    end
+end
+
+ToggleButton.MouseButton1Click:Connect(ToggleMenu)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Color = Color3.fromRGB(40, 40, 40)
-MainStroke.Thickness = 1
+MainStroke.Color = Color3.fromRGB(200, 20, 20)
+MainStroke.Thickness = 2
 
 local CloseBtn = Instance.new("TextButton", MainFrame)
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -519,7 +601,7 @@ CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 16
 CloseBtn.ZIndex = 50
 CloseBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
+    ToggleMenu()
 end)
 CloseBtn.MouseEnter:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50) end)
 CloseBtn.MouseLeave:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(150, 150, 150) end)
@@ -530,10 +612,10 @@ Sidebar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
 Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 8)
 
 local Title = Instance.new("TextLabel", Sidebar)
-Title.Text = V10_VERSION
+Title.Text = "V10 BRUTAL ED."
 Title.Size = UDim2.new(1, 0, 0, 60)
 Title.Font = Enum.Font.Sarpanch
-Title.TextColor3 = Color3.fromRGB(160, 30, 255)
+Title.TextColor3 = Color3.fromRGB(255, 30, 30)
 Title.TextSize = 20
 Title.BackgroundTransparency = 1
 
@@ -611,7 +693,7 @@ local function CreateTab(Name)
         end
         for _, v in ipairs(TabContainer:GetChildren()) do
             if v:IsA("TextButton") then
-                v.BackgroundColor3 = (v == TabBtn) and Color3.fromRGB(160, 30, 255) or Color3.fromRGB(25, 25, 25)
+                v.BackgroundColor3 = (v == TabBtn) and Color3.fromRGB(255, 30, 30) or Color3.fromRGB(25, 25, 25)
                 v.TextColor3 = (v == TabBtn) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
             end
         end
@@ -622,7 +704,7 @@ end
 -- Keybind Toggle implementation
 table.insert(System.Connections, UserInputService.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Config.UIKeybind then
-        MainFrame.Visible = not MainFrame.Visible
+        ToggleMenu()
     end
 end))
 
@@ -647,7 +729,7 @@ local function AddToggle(Parent, Text, ConfigKey, Callback)
     local Checkbox = Instance.new("Frame", Frame)
     Checkbox.Size = UDim2.new(0, 20, 0, 20)
     Checkbox.Position = UDim2.new(1, -30, 0.5, -10)
-    Checkbox.BackgroundColor3 = Config[ConfigKey] and Color3.fromRGB(160, 30, 255) or Color3.fromRGB(40, 40, 40)
+    Checkbox.BackgroundColor3 = Config[ConfigKey] and Color3.fromRGB(255, 30, 30) or Color3.fromRGB(40, 40, 40)
     Instance.new("UICorner", Checkbox).CornerRadius = UDim.new(0, 4)
     
     local debounce = false
@@ -655,7 +737,7 @@ local function AddToggle(Parent, Text, ConfigKey, Callback)
         if debounce then return end debounce = true
         Config[ConfigKey] = not Config[ConfigKey]
         TweenService:Create(Checkbox, TweenInfo.new(0.2), {
-            BackgroundColor3 = Config[ConfigKey] and Color3.fromRGB(160, 30, 255) or Color3.fromRGB(40, 40, 40)
+            BackgroundColor3 = Config[ConfigKey] and Color3.fromRGB(255, 30, 30) or Color3.fromRGB(40, 40, 40)
         }):Play()
         SaveConfig()
         if Callback then Callback(Config[ConfigKey]) end
@@ -684,7 +766,7 @@ local function AddInput(Parent, Text, ConfigKey, Callback)
     Box.Size = UDim2.new(0, 60, 0, 24)
     Box.Position = UDim2.new(1, -70, 0.5, -12)
     Box.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Box.TextColor3 = Color3.fromRGB(160, 30, 255)
+    Box.TextColor3 = Color3.fromRGB(255, 30, 30)
     Box.Font = Enum.Font.GothamBold
     Box.Text = tostring(Config[ConfigKey])
     Box.TextSize = 13
@@ -787,7 +869,12 @@ local TabMisc = CreateTab("LAINNYA")
 local TabCredits = CreateTab("KREDIT")
 
 -- Combat Tab (Pertarungan)
-AddToggle(TabCombat, "Aktifkan Aimbot", "Aimbot")
+AddToggle(TabCombat, "[BRUTAL] Aktifkan Aimbot", "Aimbot")
+AddToggle(TabCombat, "[BRUTAL] Autoclicker / TriggerBot", "TriggerBot")
+AddToggle(TabCombat, "[BRUTAL] SpinBot 360", "SpinBot")
+AddInput(TabCombat, "Kecepatan SpinBot", "SpinSpeed")
+AddToggle(TabCombat, "[BRUTAL] Perbesar Kepala (Hitbox)", "HitboxExpander")
+AddInput(TabCombat, "Ukuran Kepala Hitbox", "HitboxSize")
 AddToggle(TabCombat, "Cek Dinding (Wall Check)", "WallCheck")
 AddToggle(TabCombat, "Cek Tim Terpisah", "TeamCheck")
 AddToggle(TabCombat, "Verifikasi Hidup (Alive)", "AliveCheck")
@@ -827,18 +914,18 @@ local CreditCard = Instance.new("Frame", TabCredits)
 CreditCard.Size = UDim2.new(1, -10, 0, 160)
 CreditCard.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Instance.new("UICorner", CreditCard).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", CreditCard).Color = Color3.fromRGB(160, 30, 255)
+Instance.new("UIStroke", CreditCard).Color = Color3.fromRGB(255, 30, 30)
 Instance.new("UIStroke", CreditCard).Thickness = 1
 
 local Banner = Instance.new("Frame", CreditCard)
 Banner.Size = UDim2.new(1, 0, 0, 60)
-Banner.BackgroundColor3 = Color3.fromRGB(160, 30, 255)
+Banner.BackgroundColor3 = Color3.fromRGB(255, 30, 30)
 Instance.new("UICorner", Banner).CornerRadius = UDim.new(0, 8)
 
 local Cover = Instance.new("Frame", Banner)
 Cover.Size = UDim2.new(1, 0, 0, 10)
 Cover.Position = UDim2.new(0, 0, 1, -10)
-Cover.BackgroundColor3 = Color3.fromRGB(160, 30, 255)
+Cover.BackgroundColor3 = Color3.fromRGB(255, 30, 30)
 Cover.BorderSizePixel = 0
 
 local DevImg = Instance.new("ImageLabel", CreditCard)
@@ -856,7 +943,7 @@ task.spawn(function()
 end)
 
 local DevName = Instance.new("TextLabel", CreditCard)
-DevName.Text = "17gemadin"
+DevName.Text = "Reval"
 DevName.Position = UDim2.new(0, 110, 0, 65)
 DevName.Size = UDim2.new(0, 200, 0, 25)
 DevName.Font = Enum.Font.GothamBlack
@@ -896,7 +983,7 @@ end)
 -- Initialize Default Tab View
 for _, btn in pairs(TabContainer:GetChildren()) do
     if btn:IsA("TextButton") and btn.Text == "PERTARUNGAN" then
-        btn.BackgroundColor3 = Color3.fromRGB(160, 30, 255)
+        btn.BackgroundColor3 = Color3.fromRGB(255, 30, 30)
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         break
     end
