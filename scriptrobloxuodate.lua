@@ -561,9 +561,10 @@ table.insert(System.Connections, RunService.RenderStepped:Connect(function()
                         weld.Part0 = fakeHitbox
                         weld.Part1 = head
                         weld.Parent = fakeHitbox
+                        fakeHitbox.CFrame = head.CFrame
                     end
                     fakeHitbox.Size = Vector3.new(Config.HitboxSize, Config.HitboxSize, Config.HitboxSize)
-                    fakeHitbox.CFrame = head.CFrame
+                    -- Menghapus fakeHitbox.CFrame di update loop karena sudah memakai WeldConstraint (mencegah bug karakter bug/glitch/tersetak)
                 else
                     if fakeHitbox then fakeHitbox:Destroy() end
                 end
