@@ -475,17 +475,54 @@ pcall(function()
     ScreenGui.Parent = TargetUI
 end)
 
+local ToggleButton = Instance.new("ImageButton", ScreenGui)
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+ToggleButton.Position = UDim2.new(0, 20, 0.5, -25)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+ToggleButton.Draggable = true
+ToggleButton.Active = true
+ToggleButton.Selectable = true
+Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(1, 0)
+local ToggleStroke = Instance.new("UIStroke", ToggleButton)
+ToggleStroke.Color = Color3.fromRGB(160, 30, 255)
+ToggleStroke.Thickness = 2
+task.spawn(function()
+    pcall(function()
+        local uid = Players:GetUserIdFromNameAsync("17gemadin")
+        ToggleButton.Image = Players:GetUserThumbnailAsync(uid, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+    end)
+end)
+
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 600, 0, 420)
 MainFrame.Position = UDim2.new(0.5, -300, 0.5, -210)
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-MainFrame.Visible = true
+MainFrame.Visible = false
 MainFrame.Active = true
 MainFrame.Draggable = true
+
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local MainStroke = Instance.new("UIStroke", MainFrame)
 MainStroke.Color = Color3.fromRGB(40, 40, 40)
 MainStroke.Thickness = 1
+
+local CloseBtn = Instance.new("TextButton", MainFrame)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 16
+CloseBtn.ZIndex = 50
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+CloseBtn.MouseEnter:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50) end)
+CloseBtn.MouseLeave:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(150, 150, 150) end)
 
 local Sidebar = Instance.new("Frame", MainFrame)
 Sidebar.Size = UDim2.new(0, 170, 1, 0)
@@ -502,7 +539,7 @@ Title.BackgroundTransparency = 1
 
 local MyProfile = Instance.new("Frame", Sidebar)
 MyProfile.Size = UDim2.new(0.9, 0, 0, 50)
-MyProfile.Position = UDim2.new(0.05, 0, 0.88, 0)
+MyProfile.Position = UDim2.new(0.05, 0, 1, -60)
 MyProfile.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Instance.new("UICorner", MyProfile)
 
@@ -528,23 +565,23 @@ MyName.TextSize = 11
 MyName.TextXAlignment = Enum.TextXAlignment.Left
 MyName.TextTruncate = Enum.TextTruncate.AtEnd
 
+local TabContainer = Instance.new("Frame", Sidebar)
+TabContainer.Size = UDim2.new(1, 0, 1, -120)
+TabContainer.Position = UDim2.new(0, 0, 0, 60)
+TabContainer.BackgroundTransparency = 1
+
+local TabList = Instance.new("UIListLayout", TabContainer)
+TabList.Padding = UDim.new(0, 5)
+TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+TabList.SortOrder = Enum.SortOrder.LayoutOrder
+
 local Pages = Instance.new("Frame", MainFrame)
 Pages.Size = UDim2.new(1, -180, 1, -20)
 Pages.Position = UDim2.new(0, 180, 0, 10)
 Pages.BackgroundTransparency = 1
 
-local TabList = Instance.new("UIListLayout", Sidebar)
-TabList.Padding = UDim.new(0, 5)
-TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-TabList.SortOrder = Enum.SortOrder.LayoutOrder
-
-local TabPadding = Instance.new("Frame", Sidebar)
-TabPadding.Size = UDim2.new(1, 0, 0, 60)
-TabPadding.BackgroundTransparency = 1
-TabPadding.LayoutOrder = -1
-
 local function CreateTab(Name)
-    local TabBtn = Instance.new("TextButton", Sidebar)
+    local TabBtn = Instance.new("TextButton", TabContainer)
     TabBtn.Size = UDim2.new(0.9, 0, 0, 35)
     TabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     TabBtn.Text = Name
@@ -572,7 +609,7 @@ local function CreateTab(Name)
         for _, v in ipairs(Pages:GetChildren()) do
             v.Visible = (v == Page)
         end
-        for _, v in ipairs(Sidebar:GetChildren()) do
+        for _, v in ipairs(TabContainer:GetChildren()) do
             if v:IsA("TextButton") then
                 v.BackgroundColor3 = (v == TabBtn) and Color3.fromRGB(160, 30, 255) or Color3.fromRGB(25, 25, 25)
                 v.TextColor3 = (v == TabBtn) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
@@ -857,7 +894,7 @@ CopyDisc.MouseButton1Click:Connect(function()
 end)
 
 -- Initialize Default Tab View
-for _, btn in pairs(Sidebar:GetChildren()) do
+for _, btn in pairs(TabContainer:GetChildren()) do
     if btn:IsA("TextButton") and btn.Text == "PERTARUNGAN" then
         btn.BackgroundColor3 = Color3.fromRGB(160, 30, 255)
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
