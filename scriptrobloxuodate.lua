@@ -547,13 +547,20 @@ table.insert(System.Connections, RunService.RenderStepped:Connect(function()
                         fakeHitbox = Instance.new("Part")
                         fakeHitbox.Name = "V10_FakeHitbox"
                         fakeHitbox.Color = ColorMap[Config.ESPColorIdx].Color
-                        fakeHitbox.Transparency = 0.5
+                        fakeHitbox.Transparency = 0.6
                         fakeHitbox.Material = Enum.Material.Neon
+                        fakeHitbox.Shape = Enum.PartType.Block
                         fakeHitbox.CanCollide = false
+                        -- PENTING: CanQuery harus true agar peluru (Raycast) game bisa mengenai kotak ini!
                         pcall(function() fakeHitbox.CanQuery = true end)
                         fakeHitbox.Massless = true
-                        fakeHitbox.Anchored = true
+                        fakeHitbox.Anchored = false -- Diganti false, lalu dilas agar hit detection server lebih sinkron
                         fakeHitbox.Parent = char
+                        
+                        local weld = Instance.new("WeldConstraint")
+                        weld.Part0 = fakeHitbox
+                        weld.Part1 = head
+                        weld.Parent = fakeHitbox
                     end
                     fakeHitbox.Size = Vector3.new(Config.HitboxSize, Config.HitboxSize, Config.HitboxSize)
                     fakeHitbox.CFrame = head.CFrame
