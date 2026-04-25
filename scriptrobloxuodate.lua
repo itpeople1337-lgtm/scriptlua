@@ -119,7 +119,7 @@ local function UnloadPrevious()
 end
 UnloadPrevious()
 
--- Advanced Anti-Cheat Bypass & Server Hit Validation Spoofing (Hitbox Expander Fix)
+-- Advanced Anti-Cheat Bypass & Fake Hitbox System
 pcall(function()
     local mt = getrawmetatable(game)
     if mt and setreadonly then
@@ -127,21 +127,20 @@ pcall(function()
         local oldIndex = mt.__index
         local oldNamecall = mt.__namecall
         
-        -- Bypass Lokal Anti-Cheat (Spoofing Size & CanCollide)
+        -- Bypass Lokal Anti-Cheat (Mengecoh Size Checker & Memanipulasi Info FakeHitbox)
         mt.__index = newcclosure(function(t, k)
-            if not checkcaller() and t:IsA("BasePart") then
-                if k == "Size" then
-                    if t.Name == "Head" then return Vector3.new(1.2, 1, 1.2) end
-                    if t.Name == "HumanoidRootPart" then return Vector3.new(2, 2, 1) end
-                    if t.Name == "Torso" then return Vector3.new(2, 2, 1) end
-                elseif k == "CanCollide" and Config.HitboxExpander then
-                    if t.Name == "HumanoidRootPart" or t.Name == "Head" then return true end
+            if not checkcaller() then
+                if k == "Name" and typeof(t) == "Instance" and t.Name == "V10_FakeHitbox" then
+                    return "Head" -- Jika senjata / sistem cek nama, anggap saja ini Head asli
+                end
+                if k == "Size" and typeof(t) == "Instance" and t.Name == "V10_FakeHitbox" then
+                    return Vector3.new(1.2, 1, 1.2) -- Jika AC iseng ngecek size
                 end
             end
             return oldIndex(t, k)
         end)
         
-        -- Bypass Server Hit-Validation & Anti-Kick
+        -- Bypass Server Hit-Validation & Anti-Kick Ultimate
         mt.__namecall = newcclosure(function(self, ...)
             local method = getnamecallmethod()
             local args = {...}
@@ -162,28 +161,28 @@ pcall(function()
                             return nil
                         end
                     end
-                    if string.find(remoteName, "kick") or string.find(remoteName, "ban") or string.find(remoteName, "punish") then
-                        return nil
-                    end
+                    if string.find(remoteName, "kick") or string.find(remoteName, "ban") or string.find(remoteName, "punish") then return nil end
 
-                    -- Hit Validation Bypasser untuk Hitbox Expander
+                    -- Silent Aim Mapping untuk Fake Hitbox (Mengubah sasaran ke Head Asli sebelum sampai ke server)
                     if Config.HitboxExpander then
                         local isModified = false
                         for i, arg in pairs(args) do
-                            if typeof(arg) == "Vector3" then
+                            if typeof(arg) == "Instance" and arg.Name == "V10_FakeHitbox" then
+                                local realHead = arg.Parent and arg.Parent:FindFirstChild("Head")
+                                if realHead then
+                                    args[i] = realHead
+                                    isModified = true
+                                end
+                            elseif typeof(arg) == "Vector3" then
                                 for _, p in pairs(Players:GetPlayers()) do
                                     if p ~= LocalPlayer and p.Character then
-                                        local hp = p.Character:FindFirstChild("HumanoidRootPart")
-                                        if hp and (arg - hp.Position).Magnitude <= Config.HitboxSize then
-                                            args[i] = hp.Position -- Paksa ujung hit koordinat ke titk pusat agar dianggap hit sah normal
-                                            isModified = true
-                                            break
-                                        end
-                                        local head = p.Character:FindFirstChild("Head")
-                                        if head and (arg - head.Position).Magnitude <= Config.HitboxSize then
-                                            args[i] = head.Position
-                                            isModified = true
-                                            break
+                                        local fh = p.Character:FindFirstChild("V10_FakeHitbox")
+                                        if fh and (arg - fh.Position).Magnitude <= (Config.HitboxSize / 2 + 2) then
+                                            local head = p.Character:FindFirstChild("Head")
+                                            if head then
+                                                args[i] = head.Position
+                                                isModified = true
+                                            end
                                         end
                                     end
                                 end
@@ -534,20 +533,32 @@ table.insert(System.Connections, RunService.RenderStepped:Connect(function()
             myChar.HumanoidRootPart.CFrame = myChar.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(Config.SpinSpeed), 0)
         end
         
-        if Config.HitboxExpander then
-            for player, _ in pairs(PlayerCache) do
-                local char = player.Character
-                if char then
-                    -- BYPASS: Menggunakan HumanoidRootPart sebagai pengganti Head untuk menghindari pendeteksian anticheat (seperti di Street Life Remastered)
-                    local targetPart = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
-                    local hum = char:FindFirstChild("Humanoid")
-                    if targetPart and hum and hum.Health > 0 then
-                        if not (Config.TeamCheck and player.Team == LocalPlayer.Team) then
-                            targetPart.Size = Vector3.new(Config.HitboxSize, Config.HitboxSize, Config.HitboxSize)
-                            targetPart.Transparency = 0.5
-                            targetPart.CanCollide = false
-                        end
+        -- Fake Hitbox Expander (Mencegah kick dengan part terpisah / Proxy)
+        for player, _ in pairs(PlayerCache) do
+            local char = player.Character
+            if char then
+                local head = char:FindFirstChild("Head")
+                local hum = char:FindFirstChild("Humanoid")
+                local isValid = head and hum and hum.Health > 0 and not (Config.TeamCheck and player.Team == LocalPlayer.Team)
+                
+                local fakeHitbox = char:FindFirstChild("V10_FakeHitbox")
+                if Config.HitboxExpander and isValid then
+                    if not fakeHitbox then
+                        fakeHitbox = Instance.new("Part")
+                        fakeHitbox.Name = "V10_FakeHitbox"
+                        fakeHitbox.Color = ColorMap[Config.ESPColorIdx].Color
+                        fakeHitbox.Transparency = 0.5
+                        fakeHitbox.Material = Enum.Material.Neon
+                        fakeHitbox.CanCollide = false
+                        pcall(function() fakeHitbox.CanQuery = true end)
+                        fakeHitbox.Massless = true
+                        fakeHitbox.Anchored = true
+                        fakeHitbox.Parent = char
                     end
+                    fakeHitbox.Size = Vector3.new(Config.HitboxSize, Config.HitboxSize, Config.HitboxSize)
+                    fakeHitbox.CFrame = head.CFrame
+                else
+                    if fakeHitbox then fakeHitbox:Destroy() end
                 end
             end
         end
