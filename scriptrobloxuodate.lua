@@ -19,6 +19,25 @@ local Camera = Workspace.CurrentCamera
 local V10_VERSION = "V10 PRO INDO"
 
 -- Bypass Protection & Target GUI Setup
+-- Anti-Cheat MT Hook for Size spoofing (Bypass deteksi pembesar hitbox)
+pcall(function()
+    local mt = getrawmetatable(game)
+    if mt and setreadonly then
+        setreadonly(mt, false)
+        local oldIndex = mt.__index
+        mt.__index = newcclosure(function(t, k)
+            if not checkcaller() and k == "Size" and t:IsA("BasePart") then
+                if t.Name == "Head" then
+                    return Vector3.new(1.2, 1, 1.2)
+                elseif t.Name == "HumanoidRootPart" then
+                    return Vector3.new(2, 2, 1)
+                end
+            end
+            return oldIndex(t, k)
+        end)
+        setreadonly(mt, true)
+    end
+end)
 local TargetUI = CoreGui
 pcall(function()
     if gethui then
@@ -455,13 +474,14 @@ table.insert(System.Connections, RunService.RenderStepped:Connect(function()
             for player, _ in pairs(PlayerCache) do
                 local char = player.Character
                 if char then
-                    local head = char:FindFirstChild("Head")
+                    -- BYPASS: Menggunakan HumanoidRootPart sebagai pengganti Head untuk menghindari pendeteksian anticheat (seperti di Street Life Remastered)
+                    local targetPart = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
                     local hum = char:FindFirstChild("Humanoid")
-                    if head and hum and hum.Health > 0 then
+                    if targetPart and hum and hum.Health > 0 then
                         if not (Config.TeamCheck and player.Team == LocalPlayer.Team) then
-                            head.Size = Vector3.new(Config.HitboxSize, Config.HitboxSize, Config.HitboxSize)
-                            head.Transparency = 0.5
-                            head.CanCollide = false
+                            targetPart.Size = Vector3.new(Config.HitboxSize, Config.HitboxSize, Config.HitboxSize)
+                            targetPart.Transparency = 0.5
+                            targetPart.CanCollide = false
                         end
                     end
                 end
