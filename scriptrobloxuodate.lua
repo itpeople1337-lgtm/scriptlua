@@ -19,25 +19,6 @@ local Camera = Workspace.CurrentCamera
 local V10_VERSION = "V10 PRO INDO"
 
 -- Bypass Protection & Target GUI Setup
--- Anti-Cheat MT Hook for Size spoofing (Bypass deteksi pembesar hitbox)
-pcall(function()
-    local mt = getrawmetatable(game)
-    if mt and setreadonly then
-        setreadonly(mt, false)
-        local oldIndex = mt.__index
-        mt.__index = newcclosure(function(t, k)
-            if not checkcaller() and k == "Size" and t:IsA("BasePart") then
-                if t.Name == "Head" then
-                    return Vector3.new(1.2, 1, 1.2)
-                elseif t.Name == "HumanoidRootPart" then
-                    return Vector3.new(2, 2, 1)
-                end
-            end
-            return oldIndex(t, k)
-        end)
-        setreadonly(mt, true)
-    end
-end)
 local TargetUI = CoreGui
 pcall(function()
     if gethui then
@@ -137,6 +118,89 @@ local function UnloadPrevious()
     end
 end
 UnloadPrevious()
+
+-- Advanced Anti-Cheat Bypass & Server Hit Validation Spoofing (Hitbox Expander Fix)
+pcall(function()
+    local mt = getrawmetatable(game)
+    if mt and setreadonly then
+        setreadonly(mt, false)
+        local oldIndex = mt.__index
+        local oldNamecall = mt.__namecall
+        
+        -- Bypass Lokal Anti-Cheat (Spoofing Size & CanCollide)
+        mt.__index = newcclosure(function(t, k)
+            if not checkcaller() and t:IsA("BasePart") then
+                if k == "Size" then
+                    if t.Name == "Head" then return Vector3.new(1.2, 1, 1.2) end
+                    if t.Name == "HumanoidRootPart" then return Vector3.new(2, 2, 1) end
+                    if t.Name == "Torso" then return Vector3.new(2, 2, 1) end
+                elseif k == "CanCollide" and Config.HitboxExpander then
+                    if t.Name == "HumanoidRootPart" or t.Name == "Head" then return true end
+                end
+            end
+            return oldIndex(t, k)
+        end)
+        
+        -- Bypass Server Hit-Validation & Anti-Kick
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            local args = {...}
+            
+            if not checkcaller() then
+                -- Blokir Client Kick Force
+                if method == "Kick" or method == "kick" then
+                    return nil
+                end
+                
+                if method == "FireServer" or method == "InvokeServer" then
+                    local remoteName = string.lower(tostring(self.Name))
+                    
+                    -- Blokir Remote Ban/Kick
+                    if type(args[1]) == "string" then
+                        local arg1 = string.lower(args[1])
+                        if string.find(arg1, "kick") or string.find(arg1, "ban") or string.find(arg1, "crash") or string.find(arg1, "cheat") then
+                            return nil
+                        end
+                    end
+                    if string.find(remoteName, "kick") or string.find(remoteName, "ban") or string.find(remoteName, "punish") then
+                        return nil
+                    end
+
+                    -- Hit Validation Bypasser untuk Hitbox Expander
+                    if Config.HitboxExpander then
+                        local isModified = false
+                        for i, arg in pairs(args) do
+                            if typeof(arg) == "Vector3" then
+                                for _, p in pairs(Players:GetPlayers()) do
+                                    if p ~= LocalPlayer and p.Character then
+                                        local hp = p.Character:FindFirstChild("HumanoidRootPart")
+                                        if hp and (arg - hp.Position).Magnitude <= Config.HitboxSize then
+                                            args[i] = hp.Position -- Paksa ujung hit koordinat ke titk pusat agar dianggap hit sah normal
+                                            isModified = true
+                                            break
+                                        end
+                                        local head = p.Character:FindFirstChild("Head")
+                                        if head and (arg - head.Position).Magnitude <= Config.HitboxSize then
+                                            args[i] = head.Position
+                                            isModified = true
+                                            break
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                        if isModified then
+                            return oldNamecall(self, unpack(args))
+                        end
+                    end
+                end
+            end
+            return oldNamecall(self, ...)
+        end)
+        
+        setreadonly(mt, true)
+    end
+end)
 
 -- Global Unload Manager
 _G.AllveszUnload = function()
