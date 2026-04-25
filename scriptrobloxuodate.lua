@@ -51,6 +51,13 @@ local DefaultConfig = {
     SpinSpeed = 50,
     HitboxExpander = false,
     HitboxSize = 5,
+    WalkSpeedMod = false,
+    WalkSpeedVal = 50,
+    JumpPowerMod = false,
+    JumpPowerVal = 100,
+    NoClip = false,
+    InfiniteJump = false,
+    FullBright = false,
     WallCheck = true,
     TeamCheck = false,
     AliveCheck = true,
@@ -135,6 +142,13 @@ pcall(function()
                 end
                 if k == "Size" and typeof(t) == "Instance" and t.Name == "V10_FakeHitbox" then
                     return Vector3.new(1.2, 1, 1.2) -- Jika AC iseng ngecek size
+                end
+                -- Bypass Anti-Cheat Pengecek Kecepatan
+                if k == "WalkSpeed" and Config.WalkSpeedMod and typeof(t) == "Instance" and t:IsA("Humanoid") then
+                    return 16
+                end
+                if k == "JumpPower" and Config.JumpPowerMod and typeof(t) == "Instance" and t:IsA("Humanoid") then
+                    return 50
                 end
             end
             return oldIndex(t, k)
@@ -488,6 +502,45 @@ local function UpdateVisuals()
     end
 end
 
+-- Physics & Player Mods Connections (Berjalan di Stepped agar menimpa Engine Collision)
+table.insert(System.Connections, RunService.Stepped:Connect(function()
+    SafeCall(function()
+        local myChar = LocalPlayer.Character
+        if myChar then
+            if Config.NoClip then
+                for _, v in pairs(myChar:GetDescendants()) do
+                    if v:IsA("BasePart") and v.CanCollide then
+                        v.CanCollide = false
+                    end
+                end
+            end
+            local hum = myChar:FindFirstChild("Humanoid")
+            if hum then
+                if Config.WalkSpeedMod then
+                    hum.WalkSpeed = Config.WalkSpeedVal
+                end
+                if Config.JumpPowerMod then
+                    hum.UseJumpPower = true
+                    hum.JumpPower = Config.JumpPowerVal
+                end
+            end
+        end
+    end)
+end))
+
+-- Infinite Jump Hook
+table.insert(System.Connections, UserInputService.JumpRequest:Connect(function()
+    SafeCall(function()
+        if Config.InfiniteJump then
+            local myChar = LocalPlayer.Character
+            local hum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end)
+end))
+
 -- RenderStepped Core Tick
 local lastTime = tick()
 local frameCount = 0
@@ -502,6 +555,14 @@ table.insert(System.Connections, RunService.RenderStepped:Connect(function()
             FPSText.Text = "FPS: " .. System.CurrentFPS
             frameCount = 0
             lastTime = currentTime
+        end
+
+        -- Kecerahan Maksimal / Anti-Gelap
+        if Config.FullBright then
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 100000
+            Lighting.GlobalShadows = false
         end
 
         local viewportCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
@@ -551,20 +612,20 @@ table.insert(System.Connections, RunService.RenderStepped:Connect(function()
                         fakeHitbox.Material = Enum.Material.Neon
                         fakeHitbox.Shape = Enum.PartType.Block
                         fakeHitbox.CanCollide = false
-                        -- PENTING: CanQuery harus true agar peluru (Raycast) game bisa mengenai kotak ini!
                         pcall(function() fakeHitbox.CanQuery = true end)
                         fakeHitbox.Massless = true
-                        fakeHitbox.Anchored = false -- Diganti false, lalu dilas agar hit detection server lebih sinkron
-                        fakeHitbox.Parent = char
+                        fakeHitbox.Anchored = false
                         
-                        local weld = Instance.new("WeldConstraint")
-                        weld.Part0 = fakeHitbox
-                        weld.Part1 = head
+                        -- Menggunakan Motor6D agar otomatis lengket (zero-offset) di kepala tanpa takut jatuh/hilang/nge-bug.
+                        local weld = Instance.new("Motor6D")
+                        weld.Name = "V10_HitboxLink"
+                        weld.Part0 = head
+                        weld.Part1 = fakeHitbox
                         weld.Parent = fakeHitbox
-                        fakeHitbox.CFrame = head.CFrame
+                        
+                        fakeHitbox.Parent = char
                     end
                     fakeHitbox.Size = Vector3.new(Config.HitboxSize, Config.HitboxSize, Config.HitboxSize)
-                    -- Menghapus fakeHitbox.CFrame di update loop karena sudah memakai WeldConstraint (mencegah bug karakter bug/glitch/tersetak)
                 else
                     if fakeHitbox then fakeHitbox:Destroy() end
                 end
@@ -967,9 +1028,19 @@ end
 
 -- Setup Tabs Content
 local TabCombat = CreateTab("PERTARUNGAN")
+local TabPlayer = CreateTab("PEMAIN (MODS)")
 local TabVisual = CreateTab("VISUAL")
 local TabMisc = CreateTab("LAINNYA")
 local TabCredits = CreateTab("KREDIT")
+
+-- Player Mods Tab
+AddLabel(TabPlayer, "--- FISIK & GERAKAN ---")
+AddToggle(TabPlayer, "Tembus Tembok (NoClip)", "NoClip")
+AddToggle(TabPlayer, "Lompatan Tak Terbatas (Inf Jump)", "InfiniteJump")
+AddToggle(TabPlayer, "Hack Kecepatan (WalkSpeed)", "WalkSpeedMod")
+AddInput(TabPlayer, "Nilai Kecepatan", "WalkSpeedVal")
+AddToggle(TabPlayer, "Hack Tinggi Lompat (JumpPower)", "JumpPowerMod")
+AddInput(TabPlayer, "Nilai Tingggi Lompatan", "JumpPowerVal")
 
 -- Combat Tab (Pertarungan)
 AddToggle(TabCombat, "[BRUTAL] Aktifkan Aimbot", "Aimbot")
@@ -1004,6 +1075,7 @@ AddColorPicker(TabVisual, "Warna Tulang", "SkeletonColorIdx")
 AddLabel(TabVisual, "--- LAINNYA ---")
 AddToggle(TabVisual, "Tampilkan Cincin FOV", "ShowFOV")
 AddColorPicker(TabVisual, "Warna Cincin FOV", "FOVColorIdx")
+AddToggle(TabVisual, "Hapus Bayangan (FullBright)", "FullBright")
 
 -- Misc Tab (Lainnya)
 AddLabel(TabMisc, "Atkifkan/Matikan Menu: Tombol Shift Kanan (RightShift)")
