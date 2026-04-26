@@ -173,18 +173,28 @@ pcall(function()
                 end
                 
                 -- SIHIR RAYCAST (MAGIC BULLET)
-                if Config.MagicBullet and (method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" or method == "Raycast") then
-                    local locked = _G.Allvesz_LockedTarget
-                    if locked then
-                        local origin = args[1] and args[1].Origin or (typeof(args[1]) == "Vector3" and args[1] or Camera.CFrame.Position)
-                        local head = locked.Parent:FindFirstChild("Head")
-                        if head then
-                            if method == "Raycast" then
-                                args[2] = (head.Position - origin).Unit * 5000
-                            else
-                                args[1] = Ray.new(origin, (head.Position - origin).Unit * 5000)
+                if Config.MagicBullet then
+                    if method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" or method == "Raycast" then
+                        local locked = _G.Allvesz_LockedTarget
+                        if locked and locked.Parent then
+                            local head = locked.Parent:FindFirstChild("Head")
+                            if head then
+                                local origin = Camera.CFrame.Position
+                                if args[1] then
+                                    if typeof(args[1]) == "Ray" then
+                                        origin = args[1].Origin
+                                    elseif typeof(args[1]) == "Vector3" then
+                                        origin = args[1]
+                                    end
+                                end
+                                
+                                if method == "Raycast" then
+                                    args[2] = (head.Position - origin).Unit * 5000
+                                else
+                                    args[1] = Ray.new(origin, (head.Position - origin).Unit * 5000)
+                                end
+                                return oldNamecall(self, unpack(args))
                             end
-                            return oldNamecall(self, unpack(args))
                         end
                     end
                 end
@@ -204,17 +214,23 @@ pcall(function()
                     -- MAGIC BULLET REDIRECT PELURU
                     if Config.MagicBullet then
                         local locked = _G.Allvesz_LockedTarget
-                        if locked then
+                        local isModified = false
+                        if locked and locked.Parent then
                             local head = locked.Parent:FindFirstChild("Head")
                             if head then
                                 for i, v in pairs(args) do
-                                    if typeof(v) == "Vector3" and (v - locked.Position).Magnitude < 10 then
+                                    if typeof(v) == "Vector3" and (v - locked.Position).Magnitude < 20 then
                                         args[i] = head.Position
+                                        isModified = true
                                     elseif typeof(v) == "Instance" and v:IsDescendantOf(locked.Parent) then
                                         args[i] = head
+                                        isModified = true
                                     end
                                 end
                             end
+                        end
+                        if isModified then
+                            return oldNamecall(self, unpack(args))
                         end
                     end
                 end
@@ -963,7 +979,8 @@ local function AddToggle(Parent, Text, ConfigKey, Callback)
     
     local Checkbox = Instance.new("Frame", Frame)
     Checkbox.Size = UDim2.new(0, 20, 0, 20)
-    Checkbox.Position = UDim2.new(1, -30, 0.5, -10)
+    Checkbox.AnchorPoint = Vector2.new(1, 0.5)
+    Checkbox.Position = UDim2.new(1, -12, 0.5, 0)
     Checkbox.BackgroundColor3 = Config[ConfigKey] and Color3.fromRGB(255, 30, 30) or Color3.fromRGB(40, 40, 40)
     Instance.new("UICorner", Checkbox).CornerRadius = UDim.new(0, 4)
     
@@ -999,7 +1016,8 @@ local function AddInput(Parent, Text, ConfigKey, Callback)
     
     local Box = Instance.new("TextBox", Frame)
     Box.Size = UDim2.new(0, 60, 0, 24)
-    Box.Position = UDim2.new(1, -70, 0.5, -12)
+    Box.AnchorPoint = Vector2.new(1, 0.5)
+    Box.Position = UDim2.new(1, -12, 0.5, 0)
     Box.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     Box.TextColor3 = Color3.fromRGB(255, 30, 30)
     Box.Font = Enum.Font.GothamBold
@@ -1038,7 +1056,8 @@ local function AddColorPicker(Parent, Text, ConfigKey, Callback)
     
     local Preview = Instance.new("Frame", Btn)
     Preview.Size = UDim2.new(0, 100, 0, 24)
-    Preview.Position = UDim2.new(1, -110, 0.5, -12)
+    Preview.AnchorPoint = Vector2.new(1, 0.5)
+    Preview.Position = UDim2.new(1, -12, 0.5, 0)
     Preview.BackgroundColor3 = ColorMap[Config[ConfigKey]].Color
     Instance.new("UICorner", Preview).CornerRadius = UDim.new(0, 4)
     
