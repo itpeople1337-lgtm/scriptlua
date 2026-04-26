@@ -16,7 +16,7 @@ local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
-local V10_VERSION = "V11 BRUTAL ULTIMATE"
+local V10_VERSION = "V12 HYPER SHOOT ULTIMATE"
 
 -- Bypass Protection & Target GUI Setup
 local TargetUI = CoreGui
@@ -66,6 +66,8 @@ local DefaultConfig = {
     NoFallDamage = false,
     FakeLag = false,
     LagAmount = 5,
+    MagicBullet = false,
+    AutoShoot = false,
     WallCheck = true,
     TeamCheck = false,
     AliveCheck = true,
@@ -170,6 +172,23 @@ pcall(function()
                     return nil
                 end
                 
+                -- SIHIR RAYCAST (MAGIC BULLET)
+                if Config.MagicBullet and (method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" or method == "Raycast") then
+                    local locked = _G.Allvesz_LockedTarget
+                    if locked then
+                        local origin = args[1] and args[1].Origin or (typeof(args[1]) == "Vector3" and args[1] or Camera.CFrame.Position)
+                        local head = locked.Parent:FindFirstChild("Head")
+                        if head then
+                            if method == "Raycast" then
+                                args[2] = (head.Position - origin).Unit * 5000
+                            else
+                                args[1] = Ray.new(origin, (head.Position - origin).Unit * 5000)
+                            end
+                            return oldNamecall(self, unpack(args))
+                        end
+                    end
+                end
+
                 if method == "FireServer" or method == "InvokeServer" then
                     local remoteName = string.lower(tostring(self.Name))
                     
@@ -182,7 +201,22 @@ pcall(function()
                     end
                     if string.find(remoteName, "kick") or string.find(remoteName, "ban") or string.find(remoteName, "punish") then return nil end
 
-                    -- (Hitbox Namecall mapping dihapus. Kembali menggunakan Hitbox Asli)
+                    -- MAGIC BULLET REDIRECT PELURU
+                    if Config.MagicBullet then
+                        local locked = _G.Allvesz_LockedTarget
+                        if locked then
+                            local head = locked.Parent:FindFirstChild("Head")
+                            if head then
+                                for i, v in pairs(args) do
+                                    if typeof(v) == "Vector3" and (v - locked.Position).Magnitude < 10 then
+                                        args[i] = head.Position
+                                    elseif typeof(v) == "Instance" and v:IsDescendantOf(locked.Parent) then
+                                        args[i] = head
+                                    end
+                                end
+                            end
+                        end
+                    end
                 end
             end
             return oldNamecall(self, ...)
@@ -592,6 +626,8 @@ table.insert(System.Connections, RunService.RenderStepped:Connect(function()
 
         -- Aimbot & TriggerBot Target Update
         local LockedTarget = GetTarget()
+        _G.Allvesz_LockedTarget = LockedTarget
+        
         if Config.Aimbot and LockedTarget then
             Camera.CFrame = CFrame.new(Camera.CFrame.Position, LockedTarget.Position)
         end
@@ -640,7 +676,7 @@ table.insert(System.Connections, RunService.RenderStepped:Connect(function()
                 local oldFake = char:FindFirstChild("V10_FakeHitbox")
                 if oldFake then oldFake:Destroy() end
 
-                if Config.HitboxExpander and isValid then
+                if       Config.HitboxExpander and isValid then
                     targetHitboxPart.Size = Vector3.new(Config.HitboxSize, Config.HitboxSize, Config.HitboxSize)
                     targetHitboxPart.CanCollide = false
                     targetHitboxPart.Massless = true
@@ -700,36 +736,41 @@ pcall(function()
     ScreenGui.Parent = TargetUI
 end)
 
--- ANIMASI AWAL BUKA (BY REVAL)
+-- ANIMASI MODERN HYPERSHOOT AWAL BUKA
 local SplashFrame = Instance.new("Frame", ScreenGui)
 SplashFrame.Size = UDim2.new(1, 0, 1, 0)
-SplashFrame.BackgroundColor3 = Color3.fromRGB(10, 5, 5)
+SplashFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
+SplashFrame.BackgroundTransparency = 0.5
 SplashFrame.ZIndex = 99999
+
+local Circle = Instance.new("Frame", SplashFrame)
+Circle.Size = UDim2.new(0, 0, 0, 0)
+Circle.Position = UDim2.new(0.5, 0, 0.5, 0)
+Circle.BackgroundColor3 = Color3.fromRGB(255, 30, 60)
+Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
 
 local SplashText = Instance.new("TextLabel", SplashFrame)
 SplashText.Size = UDim2.new(1, 0, 1, 0)
 SplashText.BackgroundTransparency = 1
-SplashText.Text = "ALLVESZ V10 BRUTAL EDITION\n★ BY REVAL ★"
-SplashText.TextColor3 = Color3.fromRGB(255, 30, 30)
+SplashText.Text = "★ V12 HYPERSHOOT ★\nMODERN EDITION"
+SplashText.TextColor3 = Color3.fromRGB(255, 255, 255)
 SplashText.Font = Enum.Font.GothamBlack
 SplashText.TextSize = 1
+SplashText.TextTransparency = 1
 SplashText.ZIndex = 100000
 
-local SplashGlow = Instance.new("UIStroke", SplashText)
-SplashGlow.Color = Color3.fromRGB(200, 0, 0)
-SplashGlow.Thickness = 3
-SplashGlow.Transparency = 1
-
-local TweenSplash = TweenService:Create(SplashText, TweenInfo.new(1.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {TextSize = 50})
-TweenSplash:Play()
-TweenService:Create(SplashGlow, TweenInfo.new(1.5), {Transparency = 0}):Play()
+local tw1 = TweenService:Create(Circle, TweenInfo.new(1, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {Size = UDim2.new(0, 300, 0, 300), Position = UDim2.new(0.5, -150, 0.5, -150)})
+tw1:Play()
+TweenService:Create(SplashText, TweenInfo.new(1.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {TextSize = 45, TextTransparency = 0}):Play()
 
 task.spawn(function()
-    TweenSplash.Completed:Wait()
-    task.wait(1.5)
-    TweenService:Create(SplashText, TweenInfo.new(1, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {TextSize = 1}):Play()
-    TweenService:Create(SplashGlow, TweenInfo.new(1), {Transparency = 1}):Play()
-    local fadeOut = TweenService:Create(SplashFrame, TweenInfo.new(1, Enum.EasingStyle.Linear), {BackgroundTransparency = 1})
+    tw1.Completed:Wait()
+    task.wait(1.2)
+    TweenService:Create(SplashText, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextSize = 10, TextTransparency = 1}):Play()
+    local tw2 = TweenService:Create(Circle, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)})
+    tw2:Play()
+    tw2.Completed:Wait()
+    local fadeOut = TweenService:Create(SplashFrame, TweenInfo.new(0.5, Enum.EasingStyle.Linear), {BackgroundTransparency = 1})
     fadeOut:Play()
     fadeOut.Completed:Wait()
     SplashFrame:Destroy()
@@ -1085,9 +1126,10 @@ AddToggle(TabSuper, "[DEWA] Leg Jaringan (Fake Lag)", "FakeLag")
 AddInput(TabSuper, "Detik Leg Net", "LagAmount")
 
 -- Combat Tab (Pertarungan)
-AddToggle(TabCombat, "[BRUTAL] Aktifkan Aimbot", "Aimbot")
+AddToggle(TabCombat, "[BRUTAL] Aktifkan Aimbot (Kamera)", "Aimbot")
+AddToggle(TabCombat, "[HYPERSHOOT] Sihir Peluru (Magic Bullet)", "MagicBullet")
 AddToggle(TabCombat, "[BRUTAL] Autoclicker / TriggerBot", "TriggerBot")
-AddToggle(TabCombat, "[BRUTAL] SpinBot 360", "SpinBot")
+AddToggle(TabCombat, "[HYPERSHOOT] SpinBot 360 (Visual)", "SpinBot")
 AddInput(TabCombat, "Kecepatan SpinBot", "SpinSpeed")
 AddToggle(TabCombat, "[BRUTAL] Perbesar Kepala (Hitbox)", "HitboxExpander")
 AddInput(TabCombat, "Ukuran Kepala Hitbox", "HitboxSize")
