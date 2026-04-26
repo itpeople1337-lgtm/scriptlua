@@ -16,7 +16,7 @@ local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
-local V10_VERSION = "V10 PRO INDO"
+local V10_VERSION = "V11 BRUTAL ULTIMATE"
 
 -- Bypass Protection & Target GUI Setup
 local TargetUI = CoreGui
@@ -58,6 +58,14 @@ local DefaultConfig = {
     NoClip = false,
     InfiniteJump = false,
     FullBright = false,
+    Fly = false,
+    FlySpeed = 50,
+    CtrlClickTP = false,
+    FlingAura = false,
+    AutoTPBehind = false,
+    NoFallDamage = false,
+    FakeLag = false,
+    LagAmount = 5,
     WallCheck = true,
     TeamCheck = false,
     AliveCheck = true,
@@ -137,11 +145,8 @@ pcall(function()
         -- Bypass Lokal Anti-Cheat (Mengecoh Size Checker & Memanipulasi Info FakeHitbox)
         mt.__index = newcclosure(function(t, k)
             if not checkcaller() then
-                if k == "Name" and typeof(t) == "Instance" and t.Name == "V10_FakeHitbox" then
-                    return "Head" -- Jika senjata / sistem cek nama, anggap saja ini Head asli
-                end
-                if k == "Size" and typeof(t) == "Instance" and t.Name == "V10_FakeHitbox" then
-                    return Vector3.new(1.2, 1, 1.2) -- Jika AC iseng ngecek size
+                if k == "Size" and typeof(t) == "Instance" and t:IsA("BasePart") and (t.Name == "Head" or t.Name == "HumanoidRootPart") then
+                    return Vector3.new(1.2, 1, 1.2) -- Cegah AC lokal deteksi size besar 
                 end
                 -- Bypass Anti-Cheat Pengecek Kecepatan
                 if k == "WalkSpeed" and Config.WalkSpeedMod and typeof(t) == "Instance" and t:IsA("Humanoid") then
@@ -177,35 +182,7 @@ pcall(function()
                     end
                     if string.find(remoteName, "kick") or string.find(remoteName, "ban") or string.find(remoteName, "punish") then return nil end
 
-                    -- Silent Aim Mapping untuk Fake Hitbox (Mengubah sasaran ke Head Asli sebelum sampai ke server)
-                    if Config.HitboxExpander then
-                        local isModified = false
-                        for i, arg in pairs(args) do
-                            if typeof(arg) == "Instance" and arg.Name == "V10_FakeHitbox" then
-                                local realHead = arg.Parent and arg.Parent:FindFirstChild("Head")
-                                if realHead then
-                                    args[i] = realHead
-                                    isModified = true
-                                end
-                            elseif typeof(arg) == "Vector3" then
-                                for _, p in pairs(Players:GetPlayers()) do
-                                    if p ~= LocalPlayer and p.Character then
-                                        local fh = p.Character:FindFirstChild("V10_FakeHitbox")
-                                        if fh and (arg - fh.Position).Magnitude <= (Config.HitboxSize / 2 + 2) then
-                                            local head = p.Character:FindFirstChild("Head")
-                                            if head then
-                                                args[i] = head.Position
-                                                isModified = true
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                        if isModified then
-                            return oldNamecall(self, unpack(args))
-                        end
-                    end
+                    -- (Hitbox Namecall mapping dihapus. Kembali menggunakan Hitbox Asli)
                 end
             end
             return oldNamecall(self, ...)
@@ -541,6 +518,42 @@ table.insert(System.Connections, UserInputService.JumpRequest:Connect(function()
     end)
 end))
 
+-- Ctrl+Click Teleport (Sihir Instan)
+local LocalMouse = LocalPlayer:GetMouse()
+table.insert(System.Connections, LocalMouse.Button1Down:Connect(function()
+    SafeCall(function()
+        if Config.CtrlClickTP and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+            local myChar = LocalPlayer.Character
+            if myChar and myChar:FindFirstChild("HumanoidRootPart") and LocalMouse.Hit then
+                myChar.HumanoidRootPart.CFrame = CFrame.new(LocalMouse.Hit.Position + Vector3.new(0, 3, 0))
+            end
+        end
+    end)
+end))
+
+-- No Fall Damage & Fake Lag Hook
+table.insert(System.Connections, RunService.Stepped:Connect(function()
+    SafeCall(function()
+        if Config.NoFallDamage then
+            local myChar = LocalPlayer.Character
+            local hum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+            if hum and hum:GetState() == Enum.HumanoidStateType.Freefall then
+                hum:ChangeState(Enum.HumanoidStateType.Running)
+            end
+        end
+        
+        -- Fitur Leg Jaringan (Network Fake Lag)
+        pcall(function()
+            local netSettings = settings():GetService("NetworkSettings")
+            if Config.FakeLag then
+                netSettings.IncomingReplicationLag = tonumber(Config.LagAmount) or 5
+            else
+                netSettings.IncomingReplicationLag = 0
+            end
+        end)
+    end)
+end))
+
 -- RenderStepped Core Tick
 local lastTime = tick()
 local frameCount = 0
@@ -588,46 +601,63 @@ table.insert(System.Connections, RunService.RenderStepped:Connect(function()
             end)
         end
         
-        -- SpinBot & Hitbox Expander (FITUR BRUTAL)
+        -- Super DEWA Mods (Fly, Fling, Spin, Auto TP)
         local myChar = LocalPlayer.Character
-        if Config.SpinBot and myChar and myChar:FindFirstChild("HumanoidRootPart") then
-            myChar.HumanoidRootPart.CFrame = myChar.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(Config.SpinSpeed), 0)
+        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+            local hrp = myChar.HumanoidRootPart
+            if Config.SpinBot then
+                hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(Config.SpinSpeed), 0)
+            end
+            if Config.FlingAura then
+                hrp.Velocity = Vector3.new(0, 999999, 0)
+                hrp.RotVelocity = Vector3.new(999999, 999999, 999999)
+            end
+            if Config.Fly then
+                hrp.Velocity = Vector3.new(0, 0.5, 0) -- Anti drop
+                local moveVector = Vector3.new(0,0,0)
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + Camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - Camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - Camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + Camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveVector = moveVector + Vector3.new(0, 1, 0) end
+                hrp.CFrame = hrp.CFrame + (moveVector * (Config.FlySpeed / 15))
+            end
+            
+            if Config.AutoTPBehind and LockedTarget and LockedTarget.Parent and LockedTarget.Parent:FindFirstChild("HumanoidRootPart") then
+                hrp.CFrame = LockedTarget.Parent.HumanoidRootPart.CFrame * CFrame.new(0, 0, 4)
+            end
         end
         
-        -- Fake Hitbox Expander (Mencegah kick dengan part terpisah / Proxy)
+        -- Original Hitbox Expander (Meresize part asli ke ukuran besar)
         for player, _ in pairs(PlayerCache) do
             local char = player.Character
             if char then
-                local head = char:FindFirstChild("Head")
+                local targetHitboxPart = char:FindFirstChild(Config.TargetPart) or char:FindFirstChild("Head")
                 local hum = char:FindFirstChild("Humanoid")
-                local isValid = head and hum and hum.Health > 0 and not (Config.TeamCheck and player.Team == LocalPlayer.Team)
+                local isValid = targetHitboxPart and hum and hum.Health > 0 and not (Config.TeamCheck and player.Team == LocalPlayer.Team)
                 
-                local fakeHitbox = char:FindFirstChild("V10_FakeHitbox")
+                -- Membersihkan sisa-sisa FakeHitbox kalau masih ada
+                local oldFake = char:FindFirstChild("V10_FakeHitbox")
+                if oldFake then oldFake:Destroy() end
+
                 if Config.HitboxExpander and isValid then
-                    if not fakeHitbox then
-                        fakeHitbox = Instance.new("Part")
-                        fakeHitbox.Name = "V10_FakeHitbox"
-                        fakeHitbox.Color = ColorMap[Config.ESPColorIdx].Color
-                        fakeHitbox.Transparency = 0.6
-                        fakeHitbox.Material = Enum.Material.Neon
-                        fakeHitbox.Shape = Enum.PartType.Block
-                        fakeHitbox.CanCollide = false
-                        pcall(function() fakeHitbox.CanQuery = true end)
-                        fakeHitbox.Massless = true
-                        fakeHitbox.Anchored = false
-                        
-                        -- Menggunakan Motor6D agar otomatis lengket (zero-offset) di kepala tanpa takut jatuh/hilang/nge-bug.
-                        local weld = Instance.new("Motor6D")
-                        weld.Name = "V10_HitboxLink"
-                        weld.Part0 = head
-                        weld.Part1 = fakeHitbox
-                        weld.Parent = fakeHitbox
-                        
-                        fakeHitbox.Parent = char
+                    targetHitboxPart.Size = Vector3.new(Config.HitboxSize, Config.HitboxSize, Config.HitboxSize)
+                    targetHitboxPart.CanCollide = false
+                    targetHitboxPart.Massless = true
+                    -- Jika ada SpecialMesh (R6), perbesar scale meshnya agar bentuk asli membesar!
+                    local smesh = targetHitboxPart:FindFirstChildOfClass("SpecialMesh")
+                    if smesh then
+                        smesh.Scale = targetHitboxPart.Size / 1.15
                     end
-                    fakeHitbox.Size = Vector3.new(Config.HitboxSize, Config.HitboxSize, Config.HitboxSize)
-                else
-                    if fakeHitbox then fakeHitbox:Destroy() end
+                elseif targetHitboxPart and targetHitboxPart.Size.X > 5 then
+                    -- Reset ke normal jika dimatikan
+                    targetHitboxPart.Size = Vector3.new(1.2, 1, 1.2)
+                    targetHitboxPart.CanCollide = true
+                    targetHitboxPart.Massless = false
+                    local smesh = targetHitboxPart:FindFirstChildOfClass("SpecialMesh")
+                    if smesh then
+                        smesh.Scale = Vector3.new(1.25, 1.25, 1.25)
+                    end
                 end
             end
         end
@@ -1029,6 +1059,7 @@ end
 -- Setup Tabs Content
 local TabCombat = CreateTab("PERTARUNGAN")
 local TabPlayer = CreateTab("PEMAIN (MODS)")
+local TabSuper  = CreateTab("SUPER (DEWA)")
 local TabVisual = CreateTab("VISUAL")
 local TabMisc = CreateTab("LAINNYA")
 local TabCredits = CreateTab("KREDIT")
@@ -1041,6 +1072,17 @@ AddToggle(TabPlayer, "Hack Kecepatan (WalkSpeed)", "WalkSpeedMod")
 AddInput(TabPlayer, "Nilai Kecepatan", "WalkSpeedVal")
 AddToggle(TabPlayer, "Hack Tinggi Lompat (JumpPower)", "JumpPowerMod")
 AddInput(TabPlayer, "Nilai Tingggi Lompatan", "JumpPowerVal")
+
+-- Super Dewa Tab
+AddLabel(TabSuper, "--- MODE DEWA & MAGIS ---")
+AddToggle(TabSuper, "[DEWA] Auto Teleport Pembunuh (Ke Belakang Musuh)", "AutoTPBehind")
+AddToggle(TabSuper, "[DEWA] Ctrl + Klik Teleport (Sihir Pindah Tempat)", "CtrlClickTP")
+AddToggle(TabSuper, "[DEWA] Mode Terbang (Fly)", "Fly")
+AddInput(TabSuper, "Kecepatan Terbang", "FlySpeed")
+AddToggle(TabSuper, "[DEWA] Tornado Penabrak (Fling Aura)", "FlingAura")
+AddToggle(TabSuper, "[DEWA] Anti Jatuh Mati (No Fall Damage)", "NoFallDamage")
+AddToggle(TabSuper, "[DEWA] Leg Jaringan (Fake Lag)", "FakeLag")
+AddInput(TabSuper, "Detik Leg Net", "LagAmount")
 
 -- Combat Tab (Pertarungan)
 AddToggle(TabCombat, "[BRUTAL] Aktifkan Aimbot", "Aimbot")
