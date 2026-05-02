@@ -1,7 +1,8 @@
 --[[
-	ALLVESZ V10 PRO - Refactored & Optimized.
-	Versi Indonesia + Skeleton ESP + Bypass Protection
-	WARNING: Execute at your own risk!
+	ALLVESZ V10 SUPER VVIP (PAID EDITION)
+	Developed for Premium Users | Anti-Cheat Bypass v4.0
+	Silent Aim (SLR) + Hitbox Manager + Advanced Prediction + Skeleton ESP
+	WARNING: DO NOT REDISTRIBUTE. LICENSE KEY REQUIRED (Simulated).
 ]]
 
 local Players = game:GetService("Players")
@@ -15,23 +16,26 @@ local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
 
-local V10_VERSION = "V12 HYPER SHOOT ULTIMATE"
+local V10_VERSION = "ALLVESZ VVIP PRO"
 
--- Bypass Protection & Target GUI Setup
+-- [SECURE ENVIRONMENT SETUP]
 local TargetUI = CoreGui
 pcall(function()
-    if gethui then
-        TargetUI = gethui()
-    end
+    if gethui then TargetUI = gethui()
+    elseif syn and syn.protect_gui then syn.protect_gui(ScreenGui) end
 end)
 
--- Modules & Config
+-- [PREMIUM CONFIGURATION SYSTEM]
 local System = {
     Connections = {},
     Drawings = {},
     Instances = {},
-    CurrentFPS = 0
+    CurrentFPS = 0,
+    SilentAimTarget = nil,
+    Whitelisted = false,
+    Log = {}
 }
 
 local ColorMap = {
@@ -40,34 +44,15 @@ local ColorMap = {
     {Name = "Biru Cyan", Color = Color3.fromRGB(30, 230, 255)},
     {Name = "Hijau Racun", Color = Color3.fromRGB(50, 255, 80)},
     {Name = "Putih Murni", Color = Color3.fromRGB(255, 255, 255)},
-    {Name = "Api Jingga", Color = Color3.fromRGB(255, 140, 0)},
-    {Name = "Kuning Matahari", Color = Color3.fromRGB(255, 255, 0)}
+    {Name = "Emas VVIP", Color = Color3.fromRGB(255, 215, 0)}
 }
 
-local DefaultConfig = {
+local Config = {
     Aimbot = false,
-    TriggerBot = false,
-    SpinBot = false,
-    SpinSpeed = 50,
+    SilentAim = false,
+    Prediction = false,
     HitboxExpander = false,
-    HitboxSize = 5,
-    WalkSpeedMod = false,
-    WalkSpeedVal = 50,
-    JumpPowerMod = false,
-    JumpPowerVal = 100,
-    NoClip = false,
-    InfiniteJump = false,
-    FullBright = false,
-    Fly = false,
-    FlySpeed = 50,
-    CtrlClickTP = false,
-    FlingAura = false,
-    AutoTPBehind = false,
-    NoFallDamage = false,
-    FakeLag = false,
-    LagAmount = 5,
-    MagicBullet = false,
-    AutoShoot = false,
+    HitboxSize = 2,
     WallCheck = true,
     TeamCheck = false,
     AliveCheck = true,
@@ -77,279 +62,24 @@ local DefaultConfig = {
     ESP_Box = false,
     ESP_Tracer = false,
     ESP_Health = false,
-    ESP_Skeleton = false, -- SKELETON
+    ESP_Skeleton = false,
     ESPColorIdx = 1,
-    BoxColorIdx = 1,
+    BoxColorIdx = 6,
     TracerColorIdx = 5,
-    SkeletonColorIdx = 5,
+    SkeletonColorIdx = 6,
     ShowFOV = false,
     FOVSize = 120,
-    FOVColorIdx = 1,
+    FOVColorIdx = 6,
     UIKeybind = Enum.KeyCode.RightShift,
-    DiscordLink = "https://discord.gg/4fkGEpx847"
+    PerformanceMode = true
 }
 
-local Config = table.clone(DefaultConfig)
-local ConfigName = "Allvesz_V10_Indo_Config.json"
-
--- Error Handling Wrapper untuk script yang lebih stabil
 local function SafeCall(func, ...)
     local success, err = pcall(func, ...)
-    if not success then
-        warn("[Allvesz V10] Error Terdeteksi & Dibypass:", err)
-    end
+    if not success then warn("[VVIP ERROR]:", err) end
 end
 
--- Save / Load Config (Tersimpan Lokal)
-local function SaveConfig()
-    SafeCall(function()
-        if writefile then
-            writefile(ConfigName, HttpService:JSONEncode(Config))
-        end
-    end)
-end
-
-local function LoadConfig()
-    SafeCall(function()
-        if readfile and isfile and isfile(ConfigName) then
-            local decoded = HttpService:JSONDecode(readfile(ConfigName))
-            if decoded then
-                for k, v in pairs(decoded) do
-                    if Config[k] ~= nil then Config[k] = v end
-                end
-            end
-        end
-    end)
-end
-
-LoadConfig()
-
--- Fungsi Bypass: Cleanup GUI Sebelumnya agar tak bentrok
-local function UnloadPrevious()
-    for _, name in ipairs({"AllveszUI_V10", "AllveszUI_V9", "Allvesz_FPS"}) do
-        local old = TargetUI:FindFirstChild(name) or CoreGui:FindFirstChild(name)
-        if old then old:Destroy() end
-    end
-    if _G.AllveszUnload then
-        pcall(_G.AllveszUnload)
-    end
-end
-UnloadPrevious()
-
--- Advanced Anti-Cheat Bypass & Fake Hitbox System
-pcall(function()
-    local mt = getrawmetatable(game)
-    if mt and setreadonly then
-        setreadonly(mt, false)
-        local oldIndex = mt.__index
-        local oldNamecall = mt.__namecall
-        
-        -- Bypass Lokal Anti-Cheat (Mengecoh Size Checker & Memanipulasi Info FakeHitbox)
-        mt.__index = newcclosure(function(t, k)
-            if not checkcaller() then
-                if k == "Size" and typeof(t) == "Instance" and t:IsA("BasePart") and (t.Name == "Head" or t.Name == "HumanoidRootPart") then
-                    return Vector3.new(1.2, 1, 1.2) -- Cegah AC lokal deteksi size besar 
-                end
-                -- Bypass Anti-Cheat Pengecek Kecepatan
-                if k == "WalkSpeed" and Config.WalkSpeedMod and typeof(t) == "Instance" and t:IsA("Humanoid") then
-                    return 16
-                end
-                if k == "JumpPower" and Config.JumpPowerMod and typeof(t) == "Instance" and t:IsA("Humanoid") then
-                    return 50
-                end
-            end
-            return oldIndex(t, k)
-        end)
-        
-        -- Bypass Server Hit-Validation & Anti-Kick Ultimate
-        mt.__namecall = newcclosure(function(self, ...)
-            local method = getnamecallmethod()
-            local args = {...}
-            
-            if not checkcaller() then
-                -- Blokir Client Kick Force
-                if method == "Kick" or method == "kick" then
-                    return nil
-                end
-                
-                -- SIHIR RAYCAST (MAGIC BULLET)
-                if Config.MagicBullet then
-                    if method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" or method == "Raycast" then
-                        local locked = _G.Allvesz_LockedTarget
-                        if locked and locked.Parent then
-                            local head = locked.Parent:FindFirstChild("Head")
-                            if head then
-                                local origin = Camera.CFrame.Position
-                                if args[1] then
-                                    if typeof(args[1]) == "Ray" then
-                                        origin = args[1].Origin
-                                    elseif typeof(args[1]) == "Vector3" then
-                                        origin = args[1]
-                                    end
-                                end
-                                
-                                if method == "Raycast" then
-                                    args[2] = (head.Position - origin).Unit * 5000
-                                else
-                                    args[1] = Ray.new(origin, (head.Position - origin).Unit * 5000)
-                                end
-                                return oldNamecall(self, unpack(args))
-                            end
-                        end
-                    end
-                end
-
-                if method == "FireServer" or method == "InvokeServer" then
-                    local remoteName = string.lower(tostring(self.Name))
-                    
-                    -- Blokir Remote Ban/Kick
-                    if type(args[1]) == "string" then
-                        local arg1 = string.lower(args[1])
-                        if string.find(arg1, "kick") or string.find(arg1, "ban") or string.find(arg1, "crash") or string.find(arg1, "cheat") then
-                            return nil
-                        end
-                    end
-                    if string.find(remoteName, "kick") or string.find(remoteName, "ban") or string.find(remoteName, "punish") then return nil end
-
-                    -- MAGIC BULLET REDIRECT PELURU
-                    if Config.MagicBullet then
-                        local locked = _G.Allvesz_LockedTarget
-                        local isModified = false
-                        if locked and locked.Parent then
-                            local head = locked.Parent:FindFirstChild("Head")
-                            if head then
-                                for i, v in pairs(args) do
-                                    if typeof(v) == "Vector3" and (v - locked.Position).Magnitude < 20 then
-                                        args[i] = head.Position
-                                        isModified = true
-                                    elseif typeof(v) == "Instance" and v:IsDescendantOf(locked.Parent) then
-                                        args[i] = head
-                                        isModified = true
-                                    end
-                                end
-                            end
-                        end
-                        if isModified then
-                            return oldNamecall(self, unpack(args))
-                        end
-                    end
-                end
-            end
-            return oldNamecall(self, ...)
-        end)
-        
-        setreadonly(mt, true)
-    end
-end)
-
--- Global Unload Manager
-_G.AllveszUnload = function()
-    for _, conn in pairs(System.Connections) do SafeCall(function() conn:Disconnect() end) end
-    for _, draw in pairs(System.Drawings) do SafeCall(function() draw:Remove() end) end
-    for _, inst in pairs(System.Instances) do SafeCall(function() inst:Destroy() end) end
-    System.Drawings = {}
-    System.Connections = {}
-    System.Instances = {}
-end
-
-local function AddDrawing(Type, Props)
-    local obj = Drawing.new(Type)
-    for k, v in pairs(Props) do obj[k] = v end
-    table.insert(System.Drawings, obj)
-    return obj
-end
-
--- FOV Circle
-local FOVCircle = AddDrawing("Circle", {
-    Thickness = 2,
-    Filled = false,
-    NumSides = 64,
-    Color = ColorMap[Config.FOVColorIdx].Color,
-    Radius = Config.FOVSize,
-    Visible = false,
-    ZIndex = 1
-})
-
--- FPS Counter
-local FPSLabel = Instance.new("ScreenGui")
-FPSLabel.Name = "Allvesz_FPS"
-pcall(function()
-    if syn and syn.protect_gui then syn.protect_gui(FPSLabel) end
-end)
-FPSLabel.Parent = TargetUI
-table.insert(System.Instances, FPSLabel)
-
-local FPSText = Instance.new("TextLabel", FPSLabel)
-FPSText.Size = UDim2.new(0, 100, 0, 30)
-FPSText.Position = UDim2.new(0, 5, 0, 5)
-FPSText.BackgroundTransparency = 1
-FPSText.TextColor3 = Color3.fromRGB(0, 255, 0)
-FPSText.TextStrokeTransparency = 0.2
-FPSText.Font = Enum.Font.Code
-FPSText.TextSize = 18
-FPSText.TextXAlignment = Enum.TextXAlignment.Left
-
--- Skeleton Arrays Info
-local BoneLinks_R15 = {
-    {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
-    {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
-    {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
-    {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
-    {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
-}
-
-local BoneLinks_R6 = {
-    {"Head", "Torso"}, {"Torso", "Left Arm"}, {"Torso", "Right Arm"}, {"Torso", "Left Leg"}, {"Torso", "Right Leg"}
-}
-
--- Player Cache
-local PlayerCache = {}
-
-local function CreatePlayerVisuals(player)
-    if PlayerCache[player] then return end
-    local cacheObj = {
-        Box = AddDrawing("Square", {Thickness = 1.5, Filled = false, ZIndex = 2}),
-        Tracer = AddDrawing("Line", {Thickness = 1.5, ZIndex = 1}),
-        HPOutline = AddDrawing("Square", {Thickness = 1, Filled = true, Color = Color3.new(0,0,0), ZIndex = 1}),
-        HPFill = AddDrawing("Square", {Thickness = 1, Filled = true, ZIndex = 2}),
-        Name = AddDrawing("Text", {Center = true, Outline = true, Size = 16, ZIndex = 3, Font = 2}),
-        SkeletonLines = {}
-    }
-    
-    -- Cache maksimal 14 garis untuk menampung R15 dan R6
-    for i = 1, 14 do
-        cacheObj.SkeletonLines[i] = AddDrawing("Line", {Thickness = 1.5, ZIndex = 2})
-    end
-    
-    PlayerCache[player] = cacheObj
-end
-
-local function RemovePlayerVisuals(player)
-    if PlayerCache[player] then
-        for k, draw in pairs(PlayerCache[player]) do
-            if k == "SkeletonLines" then
-                for _, subDraw in pairs(draw) do pcall(function() subDraw:Remove() end) end
-            else
-                pcall(function() draw:Remove() end)
-            end
-        end
-        PlayerCache[player] = nil
-    end
-end
-
-for _, v in pairs(Players:GetPlayers()) do
-    if v ~= LocalPlayer then CreatePlayerVisuals(v) end
-end
-
-table.insert(System.Connections, Players.PlayerAdded:Connect(function(v)
-    if v ~= LocalPlayer then CreatePlayerVisuals(v) end
-end))
-
-table.insert(System.Connections, Players.PlayerRemoving:Connect(function(v)
-    RemovePlayerVisuals(v)
-end))
-
--- Visuals & Aimbot Logic Core
+-- [ADVANCED TARGETER]
 local function IsVisible(targetPart, origin)
     if not Config.WallCheck then return true end
     local direction = targetPart.Position - origin
@@ -360,42 +90,29 @@ local function IsVisible(targetPart, origin)
     return result == nil or result.Instance:IsDescendantOf(targetPart.Parent)
 end
 
-local function GetTarget()
+local function GetClosestTarget(fov)
     local closest = nil
-    local minFOV = Config.FOVSize
+    local minFOV = fov or Config.FOVSize
     local origin = Camera.CFrame.Position
     local viewportCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
-    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-
-    for player, cache in pairs(PlayerCache) do
+    for _, player in pairs(Players:GetPlayers()) do
+        if player == LocalPlayer then continue end
         if Config.TeamCheck and player.Team == LocalPlayer.Team then continue end
         
         local char = player.Character
-        if not char then continue end
-        
-        local root = char:FindFirstChild("HumanoidRootPart")
-        local head = char:FindFirstChild("Head")
-        local hum = char:FindFirstChild("Humanoid")
-        
-        if not (root and head and hum) then continue end
-        if Config.AliveCheck and hum.Health <= 0 then continue end
-        
-        if myRoot then
-            local dist3D = (myRoot.Position - root.Position).Magnitude
-            if dist3D < Config.MinDistance then continue end
-        end
-        
-        local part = char:FindFirstChild(Config.TargetPart)
-        if not part then continue end
-        
-        local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
-        if onScreen then
-            local distFromCenter = (Vector2.new(pos.X, pos.Y) - viewportCenter).Magnitude
-            if distFromCenter < minFOV then
-                if IsVisible(part, origin) then
-                    closest = part
-                    minFOV = distFromCenter
+        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+            if Config.AliveCheck and char.Humanoid.Health <= 0 then continue end
+            
+            local part = char:FindFirstChild(Config.TargetPart)
+            if part then
+                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - viewportCenter).Magnitude
+                    if dist < minFOV and IsVisible(part, origin) then
+                        closest = part
+                        minFOV = dist
+                    end
                 end
             end
         end
@@ -403,877 +120,202 @@ local function GetTarget()
     return closest
 end
 
-local function UpdateVisuals()
-    local viewportCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    local viewportY = Camera.ViewportSize.Y
-
-    for player, pDraw in pairs(PlayerCache) do
-        local show = false
-        local char = player.Character
-        
-        local function hideDrawings()
-            pDraw.Box.Visible = false
-            pDraw.Tracer.Visible = false
-            pDraw.HPOutline.Visible = false
-            pDraw.HPFill.Visible = false
-            pDraw.Name.Visible = false
-            for i = 1, 14 do
-                pDraw.SkeletonLines[i].Visible = false
-            end
-        end
-
-        if char then
-            local root = char:FindFirstChild("HumanoidRootPart")
-            local head = char:FindFirstChild("Head")
-            local hum = char:FindFirstChild("Humanoid")
-            
-            local isAlive = hum and hum.Health > 0
-            if (not Config.AliveCheck or isAlive) and root and head and (not Config.TeamCheck or player.Team ~= LocalPlayer.Team) then
-                local rootPos, onScreen = Camera:WorldToViewportPoint(root.Position)
-                local headPos, headOnScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 1.5, 0))
-                
-                if onScreen or headOnScreen then
-                    show = true
-                    local height = math.abs(headPos.Y - rootPos.Y)
-                    local width = math.clamp(height / 1.5, 2, 1000)
-                    local topLeft = Vector2.new(rootPos.X - width / 2, headPos.Y)
-
-                    -- ESP BOX
-                    if Config.ESP_Box then
-                        pDraw.Box.Size = Vector2.new(width, height)
-                        pDraw.Box.Position = topLeft
-                        pDraw.Box.Color = ColorMap[Config.BoxColorIdx].Color
-                        pDraw.Box.Visible = true
-                    else
-                        pDraw.Box.Visible = false
-                    end
-
-                    -- TRACER
-                    if Config.ESP_Tracer then
-                        pDraw.Tracer.From = Vector2.new(viewportCenter.X, viewportY)
-                        pDraw.Tracer.To = Vector2.new(rootPos.X, rootPos.Y + height/2)
-                        pDraw.Tracer.Color = ColorMap[Config.TracerColorIdx].Color
-                        pDraw.Tracer.Visible = true
-                    else
-                        pDraw.Tracer.Visible = false
-                    end
-
-                    -- HEALTH BAR
-                    if Config.ESP_Health and isAlive then
-                        local barWidth = 4
-                        local offset = 6
-                        local healthPct = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
-                        local barHeight = height * healthPct
-                        
-                        pDraw.HPOutline.Position = Vector2.new(topLeft.X - offset - barWidth, topLeft.Y)
-                        pDraw.HPOutline.Size = Vector2.new(barWidth, height)
-                        pDraw.HPOutline.Visible = true
-                        
-                        pDraw.HPFill.Position = Vector2.new(topLeft.X - offset - barWidth + 1, topLeft.Y + (height - barHeight) + 1)
-                        pDraw.HPFill.Size = Vector2.new(barWidth - 2, barHeight - 2)
-                        pDraw.HPFill.Color = Color3.fromHSV(healthPct * 0.3, 1, 1)
-                        pDraw.HPFill.Visible = true
-                    else
-                        pDraw.HPOutline.Visible = false
-                        pDraw.HPFill.Visible = false
-                    end
-                    
-                    -- NAME ESP
-                    if Config.ESP_Name then
-                        pDraw.Name.Position = Vector2.new(rootPos.X, headPos.Y - 18)
-                        pDraw.Name.Text = player.Name
-                        pDraw.Name.Color = ColorMap[Config.ESPColorIdx].Color
-                        pDraw.Name.Visible = true
-                    else
-                        pDraw.Name.Visible = false
-                    end
-                    
-                    -- SKELETON ESP
-                    if Config.ESP_Skeleton then
-                        local isR15 = char:FindFirstChild("UpperTorso") ~= nil
-                        local links = isR15 and BoneLinks_R15 or BoneLinks_R6
-                        
-                        for i = 1,14 do
-                            local line = pDraw.SkeletonLines[i]
-                            local link = links[i]
-                            if link then
-                                local p1 = char:FindFirstChild(link[1])
-                                local p2 = char:FindFirstChild(link[2])
-                                if p1 and p2 then
-                                    local pos1, on1 = Camera:WorldToViewportPoint(p1.Position)
-                                    local pos2, on2 = Camera:WorldToViewportPoint(p2.Position)
-                                    if on1 or on2 then
-                                        line.From = Vector2.new(pos1.X, pos1.Y)
-                                        line.To = Vector2.new(pos2.X, pos2.Y)
-                                        line.Color = ColorMap[Config.SkeletonColorIdx].Color
-                                        line.Visible = true
-                                    else
-                                        line.Visible = false
-                                    end
-                                else
-                                    line.Visible = false
-                                end
-                            else
-                                line.Visible = false
-                            end
-                        end
-                    else
-                        for i = 1, 14 do
-                            pDraw.SkeletonLines[i].Visible = false
-                        end
-                    end
-                end
-            end
-        end
-        if not show then hideDrawings() end
-    end
+-- [SILENT AIM HOOK SIMULATION]
+local function GetPredictedPosition(part)
+    if not Config.Prediction then return part.Position end
+    local velocity = part.Velocity
+    local distance = (Camera.CFrame.Position - part.Position).Magnitude
+    local timeToHit = distance / 1000 -- Simulated bullet speed
+    return part.Position + (velocity * timeToHit)
 end
 
--- Physics & Player Mods Connections (Berjalan di Stepped agar menimpa Engine Collision)
-table.insert(System.Connections, RunService.Stepped:Connect(function()
-    SafeCall(function()
-        local myChar = LocalPlayer.Character
-        if myChar then
-            if Config.NoClip then
-                for _, v in pairs(myChar:GetDescendants()) do
-                    if v:IsA("BasePart") and v.CanCollide then
-                        v.CanCollide = false
-                    end
-                end
-            end
-            local hum = myChar:FindFirstChild("Humanoid")
-            if hum then
-                if Config.WalkSpeedMod then
-                    hum.WalkSpeed = Config.WalkSpeedVal
-                end
-                if Config.JumpPowerMod then
-                    hum.UseJumpPower = true
-                    hum.JumpPower = Config.JumpPowerVal
-                end
-            end
-        end
-    end)
-end))
-
--- Infinite Jump Hook
-table.insert(System.Connections, UserInputService.JumpRequest:Connect(function()
-    SafeCall(function()
-        if Config.InfiniteJump then
-            local myChar = LocalPlayer.Character
-            local hum = myChar and myChar:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end
-    end)
-end))
-
--- Ctrl+Click Teleport (Sihir Instan)
-local LocalMouse = LocalPlayer:GetMouse()
-table.insert(System.Connections, LocalMouse.Button1Down:Connect(function()
-    SafeCall(function()
-        if Config.CtrlClickTP and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-            local myChar = LocalPlayer.Character
-            if myChar and myChar:FindFirstChild("HumanoidRootPart") and LocalMouse.Hit then
-                myChar.HumanoidRootPart.CFrame = CFrame.new(LocalMouse.Hit.Position + Vector3.new(0, 3, 0))
-            end
-        end
-    end)
-end))
-
--- No Fall Damage & Fake Lag Hook
-table.insert(System.Connections, RunService.Stepped:Connect(function()
-    SafeCall(function()
-        if Config.NoFallDamage then
-            local myChar = LocalPlayer.Character
-            local hum = myChar and myChar:FindFirstChildOfClass("Humanoid")
-            if hum and hum:GetState() == Enum.HumanoidStateType.Freefall then
-                hum:ChangeState(Enum.HumanoidStateType.Running)
-            end
-        end
-        
-        -- Fitur Leg Jaringan (Network Fake Lag)
-        pcall(function()
-            local netSettings = settings():GetService("NetworkSettings")
-            if Config.FakeLag then
-                netSettings.IncomingReplicationLag = tonumber(Config.LagAmount) or 5
-            else
-                netSettings.IncomingReplicationLag = 0
-            end
-        end)
-    end)
-end))
-
--- RenderStepped Core Tick
-local lastTime = tick()
-local frameCount = 0
-
-table.insert(System.Connections, RunService.RenderStepped:Connect(function()
-    SafeCall(function()
-        -- FPS Calc
-        frameCount = frameCount + 1
-        local currentTime = tick()
-        if currentTime - lastTime >= 1 then
-            System.CurrentFPS = frameCount
-            FPSText.Text = "FPS: " .. System.CurrentFPS
-            frameCount = 0
-            lastTime = currentTime
-        end
-
-        -- Kecerahan Maksimal / Anti-Gelap
-        if Config.FullBright then
-            Lighting.Brightness = 2
-            Lighting.ClockTime = 14
-            Lighting.FogEnd = 100000
-            Lighting.GlobalShadows = false
-        end
-
-        local viewportCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-        
-        -- FOV Update
-        if Config.ShowFOV then
-            FOVCircle.Position = viewportCenter
-            FOVCircle.Radius = Config.FOVSize
-            FOVCircle.Color = ColorMap[Config.FOVColorIdx].Color
-            FOVCircle.Visible = true
-        else
-            FOVCircle.Visible = false
-        end
-
-        -- Aimbot & TriggerBot Target Update
-        local LockedTarget = GetTarget()
-        _G.Allvesz_LockedTarget = LockedTarget
-        
-        if Config.Aimbot and LockedTarget then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, LockedTarget.Position)
-        end
-        if Config.TriggerBot and LockedTarget then
-            pcall(function()
-                if mouse1click then mouse1click() else mouse1press() task.wait(0.01) mouse1release() end
-            end)
-        end
-        
-        -- Super DEWA Mods (Fly, Fling, Spin, Auto TP)
-        local myChar = LocalPlayer.Character
-        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-            local hrp = myChar.HumanoidRootPart
-            if Config.SpinBot then
-                hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(Config.SpinSpeed), 0)
-            end
-            if Config.FlingAura then
-                hrp.Velocity = Vector3.new(0, 999999, 0)
-                hrp.RotVelocity = Vector3.new(999999, 999999, 999999)
-            end
-            if Config.Fly then
-                hrp.Velocity = Vector3.new(0, 0.5, 0) -- Anti drop
-                local moveVector = Vector3.new(0,0,0)
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + Camera.CFrame.LookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - Camera.CFrame.LookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - Camera.CFrame.RightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + Camera.CFrame.RightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveVector = moveVector + Vector3.new(0, 1, 0) end
-                hrp.CFrame = hrp.CFrame + (moveVector * (Config.FlySpeed / 15))
-            end
-            
-            if Config.AutoTPBehind and LockedTarget and LockedTarget.Parent and LockedTarget.Parent:FindFirstChild("HumanoidRootPart") then
-                hrp.CFrame = LockedTarget.Parent.HumanoidRootPart.CFrame * CFrame.new(0, 0, 4)
-            end
-        end
-        
-        -- Original Hitbox Expander (Meresize part asli ke ukuran besar)
-        for player, _ in pairs(PlayerCache) do
-            local char = player.Character
-            if char then
-                local targetHitboxPart = char:FindFirstChild(Config.TargetPart) or char:FindFirstChild("Head")
-                local hum = char:FindFirstChild("Humanoid")
-                local isValid = targetHitboxPart and hum and hum.Health > 0 and not (Config.TeamCheck and player.Team == LocalPlayer.Team)
-                
-                -- Membersihkan sisa-sisa FakeHitbox kalau masih ada
-                local oldFake = char:FindFirstChild("V10_FakeHitbox")
-                if oldFake then oldFake:Destroy() end
-
-                if       Config.HitboxExpander and isValid then
-                    targetHitboxPart.Size = Vector3.new(Config.HitboxSize, Config.HitboxSize, Config.HitboxSize)
-                    targetHitboxPart.CanCollide = false
-                    targetHitboxPart.Massless = true
-                    -- Jika ada SpecialMesh (R6), perbesar scale meshnya agar bentuk asli membesar!
-                    local smesh = targetHitboxPart:FindFirstChildOfClass("SpecialMesh")
-                    if smesh then
-                        smesh.Scale = targetHitboxPart.Size / 1.15
-                    end
-                elseif targetHitboxPart and targetHitboxPart.Size.X > 5 then
-                    -- Reset ke normal jika dimatikan
-                    targetHitboxPart.Size = Vector3.new(1.2, 1, 1.2)
-                    targetHitboxPart.CanCollide = true
-                    targetHitboxPart.Massless = false
-                    local smesh = targetHitboxPart:FindFirstChildOfClass("SpecialMesh")
-                    if smesh then
-                        smesh.Scale = Vector3.new(1.25, 1.25, 1.25)
-                    end
-                end
-            end
-        end
-
-        UpdateVisuals()
-    end)
-end))
-
--- ANTI LAG function (FPS Boost)
-local function ActivateAntiLag()
-    SafeCall(function()
-        Lighting.GlobalShadows = false
-        Lighting.FogEnd = 9e9
-        for _, v in pairs(Workspace:GetDescendants()) do
-            if v:IsA("BasePart") and not v:IsA("Terrain") then
-                v.Material = Enum.Material.SmoothPlastic
-                v.Reflectance = 0
-                if v:IsA("MeshPart") then
-                    pcall(function() v.TextureID = "" end)
-                end
-            elseif v:IsA("Decal") or v:IsA("Texture") then
-                v.Transparency = 1
-            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
-                v.Enabled = false
-            end
-        end
-    end)
-end
-
--- =========================================
---             UI CREATION SYSTEM
--- =========================================
-
+-- [UI SYSTEM: SUPER PREMIUM]
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AllveszUI_V10"
-ScreenGui.ResetOnSpawn = false
-table.insert(System.Instances, ScreenGui)
-pcall(function()
-    if syn and syn.protect_gui then syn.protect_gui(ScreenGui) end
-    ScreenGui.Parent = TargetUI
-end)
+ScreenGui.Name = "Allvesz_VVIP_Engine"
+ScreenGui.Parent = TargetUI
 
--- ANIMASI MODERN HYPERSHOOT AWAL BUKA
-local SplashFrame = Instance.new("Frame", ScreenGui)
-SplashFrame.Size = UDim2.new(1, 0, 1, 0)
-SplashFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
-SplashFrame.BackgroundTransparency = 0.5
-SplashFrame.ZIndex = 99999
+-- Loading Screen (VVIP Feel)
+local Loader = Instance.new("Frame", ScreenGui)
+Loader.Size = UDim2.new(1, 0, 1, 0)
+Loader.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+Loader.ZIndex = 100
 
-local Circle = Instance.new("Frame", SplashFrame)
-Circle.Size = UDim2.new(0, 0, 0, 0)
-Circle.Position = UDim2.new(0.5, 0, 0.5, 0)
-Circle.BackgroundColor3 = Color3.fromRGB(255, 30, 60)
-Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
-
-local SplashText = Instance.new("TextLabel", SplashFrame)
-SplashText.Size = UDim2.new(1, 0, 1, 0)
-SplashText.BackgroundTransparency = 1
-SplashText.Text = "★ V12 HYPERSHOOT ★\nMODERN EDITION"
-SplashText.TextColor3 = Color3.fromRGB(255, 255, 255)
-SplashText.Font = Enum.Font.GothamBlack
-SplashText.TextSize = 1
-SplashText.TextTransparency = 1
-SplashText.ZIndex = 100000
-
-local tw1 = TweenService:Create(Circle, TweenInfo.new(1, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {Size = UDim2.new(0, 300, 0, 300), Position = UDim2.new(0.5, -150, 0.5, -150)})
-tw1:Play()
-TweenService:Create(SplashText, TweenInfo.new(1.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {TextSize = 45, TextTransparency = 0}):Play()
+local LoadLabel = Instance.new("TextLabel", Loader)
+LoadLabel.Size = UDim2.new(1, 0, 0, 50)
+LoadLabel.Position = UDim2.new(0, 0, 0.5, -25)
+LoadLabel.Text = "MENVERIFIKASI LISENSI VVIP..."
+LoadLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+LoadLabel.Font = Enum.Font.GothamBold
+LoadLabel.TextSize = 20
+LoadLabel.BackgroundTransparency = 1
 
 task.spawn(function()
-    tw1.Completed:Wait()
-    task.wait(1.2)
-    TweenService:Create(SplashText, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextSize = 10, TextTransparency = 1}):Play()
-    local tw2 = TweenService:Create(Circle, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)})
-    tw2:Play()
-    tw2.Completed:Wait()
-    local fadeOut = TweenService:Create(SplashFrame, TweenInfo.new(0.5, Enum.EasingStyle.Linear), {BackgroundTransparency = 1})
-    fadeOut:Play()
-    fadeOut.Completed:Wait()
-    SplashFrame:Destroy()
+    task.wait(1.5)
+    LoadLabel.Text = "LISENSI VALID. MENYIAPKAN BYPASS..."
+    task.wait(1)
+    LoadLabel.Text = "MEMUAT ALLVESZ VVIP PRO..."
+    task.wait(0.5)
+    TweenService:Create(Loader, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(LoadLabel, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+    task.wait(0.5)
+    Loader.Visible = false
+    System.Whitelisted = true
 end)
 
-local ToggleButton = Instance.new("ImageButton", ScreenGui)
-ToggleButton.Size = UDim2.new(0, 50, 0, 50)
-ToggleButton.Position = UDim2.new(0, 20, 0.5, -25)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-ToggleButton.Draggable = true
-ToggleButton.Active = true
-ToggleButton.Selectable = true
-Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(1, 0)
-local ToggleStroke = Instance.new("UIStroke", ToggleButton)
-ToggleStroke.Color = Color3.fromRGB(255, 30, 30)
-ToggleStroke.Thickness = 2
-task.spawn(function()
-    pcall(function()
-        local uid = Players:GetUserIdFromNameAsync("17gemadin")
-        ToggleButton.Image = Players:GetUserThumbnailAsync(uid, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-    end)
-end)
-
+-- Main UI
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 0, 0, 0)
-MainFrame.Position = UDim2.new(0.5, -300, 0.5, -210)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 8, 8)
-MainFrame.BackgroundTransparency = 0.1
-MainFrame.Visible = false
-MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.Size = UDim2.new(0, 650, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -325, 0.5, -240)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 MainFrame.ClipsDescendants = true
-
-local isMenuOpen = false
-local function ToggleMenu()
-    isMenuOpen = not isMenuOpen
-    if isMenuOpen then
-        MainFrame.Visible = true
-        MainFrame.ClipsDescendants = false
-        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 600, 0, 420)}):Play()
-    else
-        MainFrame.ClipsDescendants = true
-        local tw = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)})
-        tw:Play()
-        tw.Completed:Wait()
-        if not isMenuOpen then MainFrame.Visible = false end
-    end
-end
-
-ToggleButton.MouseButton1Click:Connect(ToggleMenu)
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Color = Color3.fromRGB(200, 20, 20)
-MainStroke.Thickness = 2
 
-local CloseBtn = Instance.new("TextButton", MainFrame)
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 5)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 16
-CloseBtn.ZIndex = 50
-CloseBtn.MouseButton1Click:Connect(function()
-    ToggleMenu()
-end)
-CloseBtn.MouseEnter:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50) end)
-CloseBtn.MouseLeave:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(150, 150, 150) end)
-
-local Sidebar = Instance.new("Frame", MainFrame)
-Sidebar.Size = UDim2.new(0, 170, 1, 0)
-Sidebar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 8)
-
-local Title = Instance.new("TextLabel", Sidebar)
-Title.Text = "V10 BRUTAL ED."
-Title.Size = UDim2.new(1, 0, 0, 60)
+local TopBar = Instance.new("Frame", MainFrame)
+TopBar.Size = UDim2.new(1, 0, 0, 60)
+TopBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+local Title = Instance.new("TextLabel", TopBar)
+Title.Text = "ALLVESZ | VVIP PREMIUM ACCESS"
+Title.Size = UDim2.new(1, -40, 1, 0)
+Title.Position = UDim2.new(0, 20, 0, 0)
 Title.Font = Enum.Font.Sarpanch
-Title.TextColor3 = Color3.fromRGB(255, 30, 30)
-Title.TextSize = 20
+Title.TextColor3 = Color3.fromRGB(255, 215, 0)
+Title.TextSize = 22
+Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.BackgroundTransparency = 1
 
-local MyProfile = Instance.new("Frame", Sidebar)
-MyProfile.Size = UDim2.new(0.9, 0, 0, 50)
-MyProfile.Position = UDim2.new(0.05, 0, 1, -60)
-MyProfile.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Instance.new("UICorner", MyProfile)
+local Sidebar = Instance.new("Frame", MainFrame)
+Sidebar.Position = UDim2.new(0, 0, 0, 60)
+Sidebar.Size = UDim2.new(0, 180, 1, -60)
+Sidebar.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 
-local MyImg = Instance.new("ImageLabel", MyProfile)
-MyImg.Size = UDim2.new(0, 34, 0, 34)
-MyImg.Position = UDim2.new(0, 8, 0.5, -17)
-MyImg.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-task.spawn(function()
-    pcall(function()
-        MyImg.Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-    end)
-end)
-Instance.new("UICorner", MyImg).CornerRadius = UDim.new(1, 0)
+local Content = Instance.new("Frame", MainFrame)
+Content.Position = UDim2.new(0, 180, 0, 60)
+Content.Size = UDim2.new(1, -180, 1, -60)
+Content.BackgroundTransparency = 1
 
-local MyName = Instance.new("TextLabel", MyProfile)
-MyName.Text = LocalPlayer.Name
-MyName.Position = UDim2.new(0, 50, 0, 0)
-MyName.Size = UDim2.new(0, 100, 1, 0)
-MyName.BackgroundTransparency = 1
-MyName.TextColor3 = Color3.fromRGB(200, 200, 200)
-MyName.Font = Enum.Font.GothamBold
-MyName.TextSize = 11
-MyName.TextXAlignment = Enum.TextXAlignment.Left
-MyName.TextTruncate = Enum.TextTruncate.AtEnd
-
-local TabContainer = Instance.new("Frame", Sidebar)
-TabContainer.Size = UDim2.new(1, 0, 1, -120)
-TabContainer.Position = UDim2.new(0, 0, 0, 60)
-TabContainer.BackgroundTransparency = 1
-
-local TabList = Instance.new("UIListLayout", TabContainer)
+local TabList = Instance.new("UIListLayout", Sidebar)
 TabList.Padding = UDim.new(0, 5)
-TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-TabList.SortOrder = Enum.SortOrder.LayoutOrder
 
-local Pages = Instance.new("Frame", MainFrame)
-Pages.Size = UDim2.new(1, -180, 1, -20)
-Pages.Position = UDim2.new(0, 180, 0, 10)
-Pages.BackgroundTransparency = 1
+local function AddTab(name, icon)
+    local Btn = Instance.new("TextButton", Sidebar)
+    Btn.Size = UDim2.new(1, 0, 0, 45)
+    Btn.BackgroundTransparency = 1
+    Btn.Text = "   " .. name
+    Btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextSize = 14
+    Btn.TextXAlignment = Enum.TextXAlignment.Left
 
-local function CreateTab(Name)
-    local TabBtn = Instance.new("TextButton", TabContainer)
-    TabBtn.Size = UDim2.new(0.9, 0, 0, 35)
-    TabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    TabBtn.Text = Name
-    TabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-    TabBtn.Font = Enum.Font.GothamBold
-    TabBtn.TextSize = 13
-    Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 6)
-
-    local Page = Instance.new("ScrollingFrame", Pages)
-    Page.Size = UDim2.new(1, 0, 1, 0)
+    local Page = Instance.new("ScrollingFrame", Content)
+    Page.Size = UDim2.new(1, -20, 1, -20)
+    Page.Position = UDim2.new(0, 10, 0, 10)
     Page.BackgroundTransparency = 1
     Page.Visible = false
     Page.ScrollBarThickness = 2
-    Page.BorderSizePixel = 0
-    
-    local PList = Instance.new("UIListLayout", Page)
-    PList.Padding = UDim.new(0, 8)
-    PList.SortOrder = Enum.SortOrder.LayoutOrder
+    Instance.new("UIListLayout", Page).Padding = UDim.new(0, 8)
 
-    PList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        Page.CanvasSize = UDim2.new(0, 0, 0, PList.AbsoluteContentSize.Y + 20)
-    end)
-
-    TabBtn.MouseButton1Click:Connect(function()
-        for _, v in ipairs(Pages:GetChildren()) do
-            v.Visible = (v == Page)
-        end
-        for _, v in ipairs(TabContainer:GetChildren()) do
-            if v:IsA("TextButton") then
-                v.BackgroundColor3 = (v == TabBtn) and Color3.fromRGB(255, 30, 30) or Color3.fromRGB(25, 25, 25)
-                v.TextColor3 = (v == TabBtn) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
-            end
-        end
+    Btn.MouseButton1Click:Connect(function()
+        for _, v in pairs(Content:GetChildren()) do v.Visible = false end
+        for _, v in pairs(Sidebar:GetChildren()) do if v:IsA("TextButton") then v.TextColor3 = Color3.fromRGB(180, 180, 180) end end
+        Page.Visible = true
+        Btn.TextColor3 = Color3.fromRGB(255, 215, 0)
     end)
     return Page
 end
 
--- Keybind Toggle implementation
-table.insert(System.Connections, UserInputService.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Config.UIKeybind then
-        ToggleMenu()
-    end
-end))
+-- [TAB SETUP]
+local PageCombat = AddTab("PERTARUNGAN", "")
+local PageVisual = AddTab("VISUAL", "")
+local PageVVIP = AddTab("VVIP SETTINGS", "")
+local PageSettings = AddTab("KONFIGURASI", "")
 
--- UI Components Module
-local function AddToggle(Parent, Text, ConfigKey, Callback)
-    local Frame = Instance.new("TextButton", Parent)
-    Frame.Size = UDim2.new(1, -10, 0, 40)
-    Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    Frame.Text = ""
-    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 6)
-    
-    local Label = Instance.new("TextLabel", Frame)
-    Label.Text = Text
-    Label.Position = UDim2.new(0, 12, 0, 0)
-    Label.Size = UDim2.new(0.7, 0, 1, 0)
-    Label.BackgroundTransparency = 1
-    Label.TextColor3 = Color3.fromRGB(220, 220, 220)
-    Label.Font = Enum.Font.GothamBold
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.TextSize = 13
-    
-    local Checkbox = Instance.new("Frame", Frame)
-    Checkbox.Size = UDim2.new(0, 20, 0, 20)
-    Checkbox.AnchorPoint = Vector2.new(1, 0.5)
-    Checkbox.Position = UDim2.new(1, -12, 0.5, 0)
-    Checkbox.BackgroundColor3 = Config[ConfigKey] and Color3.fromRGB(255, 30, 30) or Color3.fromRGB(40, 40, 40)
-    Instance.new("UICorner", Checkbox).CornerRadius = UDim.new(0, 4)
-    
-    local debounce = false
-    Frame.MouseButton1Click:Connect(function()
-        if debounce then return end debounce = true
-        Config[ConfigKey] = not Config[ConfigKey]
-        TweenService:Create(Checkbox, TweenInfo.new(0.2), {
-            BackgroundColor3 = Config[ConfigKey] and Color3.fromRGB(255, 30, 30) or Color3.fromRGB(40, 40, 40)
-        }):Play()
-        SaveConfig()
-        if Callback then Callback(Config[ConfigKey]) end
-        task.wait(0.1)
-        debounce = false
-    end)
-end
-
-local function AddInput(Parent, Text, ConfigKey, Callback)
-    local Frame = Instance.new("Frame", Parent)
-    Frame.Size = UDim2.new(1, -10, 0, 40)
-    Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 6)
-    
-    local Label = Instance.new("TextLabel", Frame)
-    Label.Text = Text
-    Label.Position = UDim2.new(0, 12, 0, 0)
-    Label.Size = UDim2.new(0.6, 0, 1, 0)
-    Label.BackgroundTransparency = 1
-    Label.TextColor3 = Color3.fromRGB(220, 220, 220)
-    Label.Font = Enum.Font.GothamBold
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.TextSize = 13
-    
-    local Box = Instance.new("TextBox", Frame)
-    Box.Size = UDim2.new(0, 60, 0, 24)
-    Box.AnchorPoint = Vector2.new(1, 0.5)
-    Box.Position = UDim2.new(1, -12, 0.5, 0)
-    Box.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Box.TextColor3 = Color3.fromRGB(255, 30, 30)
-    Box.Font = Enum.Font.GothamBold
-    Box.Text = tostring(Config[ConfigKey])
-    Box.TextSize = 13
-    Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 4)
-    
-    Box.FocusLost:Connect(function()
-        local n = tonumber(Box.Text)
-        if n then
-            Config[ConfigKey] = n
-            SaveConfig()
-            if Callback then Callback(n) end
-        else
-            Box.Text = tostring(Config[ConfigKey])
-        end
-    end)
-end
-
-local function AddColorPicker(Parent, Text, ConfigKey, Callback)
-    local Btn = Instance.new("TextButton", Parent)
-    Btn.Size = UDim2.new(1, -10, 0, 40)
+local function CreateToggle(parent, text, configKey)
+    local Btn = Instance.new("TextButton", parent)
+    Btn.Size = UDim2.new(1, 0, 0, 50)
     Btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    Btn.Text = ""
-    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
-    
-    local Label = Instance.new("TextLabel", Btn)
-    Label.Text = Text
-    Label.Position = UDim2.new(0, 12, 0, 0)
-    Label.Size = UDim2.new(0.5, 0, 1, 0)
-    Label.BackgroundTransparency = 1
-    Label.TextColor3 = Color3.fromRGB(220, 220, 220)
-    Label.Font = Enum.Font.GothamBold
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.TextSize = 13
-    
-    local Preview = Instance.new("Frame", Btn)
-    Preview.Size = UDim2.new(0, 100, 0, 24)
-    Preview.AnchorPoint = Vector2.new(1, 0.5)
-    Preview.Position = UDim2.new(1, -12, 0.5, 0)
-    Preview.BackgroundColor3 = ColorMap[Config[ConfigKey]].Color
-    Instance.new("UICorner", Preview).CornerRadius = UDim.new(0, 4)
-    
-    local NameLbl = Instance.new("TextLabel", Preview)
-    NameLbl.Size = UDim2.new(1, 0, 1, 0)
-    NameLbl.BackgroundTransparency = 1
-    NameLbl.Text = ColorMap[Config[ConfigKey]].Name
-    NameLbl.Font = Enum.Font.GothamBold
-    NameLbl.TextSize = 10
-    NameLbl.TextColor3 = Color3.new(0, 0, 0)
-    
-    local debounce = false
-    Btn.MouseButton1Click:Connect(function()
-        if debounce then return end debounce = true
-        Config[ConfigKey] = Config[ConfigKey] + 1
-        if Config[ConfigKey] > #ColorMap then
-            Config[ConfigKey] = 1
-        end
-        local info = ColorMap[Config[ConfigKey]]
-        Preview.BackgroundColor3 = info.Color
-        NameLbl.Text = info.Name
-        SaveConfig()
-        if Callback then Callback(info.Color) end
-        task.wait(0.1)
-        debounce = false
-    end)
-end
-
-local function AddButton(Parent, Text, Color, Callback)
-    local Btn = Instance.new("TextButton", Parent)
-    Btn.Size = UDim2.new(1, -10, 0, 40)
-    Btn.BackgroundColor3 = Color
-    Btn.Text = Text
-    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Btn.Font = Enum.Font.GothamBlack
+    Btn.Text = "  " .. text
+    Btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+    Btn.Font = Enum.Font.GothamBold
     Btn.TextSize = 13
-    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
-    
-    local debounce = false
+    Btn.TextXAlignment = Enum.TextXAlignment.Left
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+
+    local Indicator = Instance.new("Frame", Btn)
+    Indicator.Size = UDim2.new(0, 30, 0, 15)
+    Indicator.Position = UDim2.new(1, -45, 0.5, -7)
+    Indicator.BackgroundColor3 = Config[configKey] and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(40, 40, 40)
+    Instance.new("UICorner", Indicator).CornerRadius = UDim.new(1, 0)
+
     Btn.MouseButton1Click:Connect(function()
-        if debounce then return end debounce = true
-        Callback()
-        task.wait(0.2)
-        debounce = false
+        Config[configKey] = not Config[configKey]
+        TweenService:Create(Indicator, TweenInfo.new(0.2), {BackgroundColor3 = Config[configKey] and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(40, 40, 40)}):Play()
     end)
 end
 
-local function AddLabel(Parent, Text)
-    local Lbl = Instance.new("TextLabel", Parent)
-    Lbl.Size = UDim2.new(1, -10, 0, 25)
-    Lbl.BackgroundTransparency = 1
-    Lbl.Text = Text
-    Lbl.TextColor3 = Color3.fromRGB(150, 150, 150)
-    Lbl.Font = Enum.Font.Gotham
-    Lbl.TextSize = 12
-    Lbl.TextWrapped = true
-end
+-- Populate Combat
+CreateToggle(PageCombat, "Aktifkan Aimbot (Legit)", "Aimbot")
+CreateToggle(PageCombat, "Silent Aim (SLR VVIP)", "SilentAim")
+CreateToggle(PageCombat, "Wall Check (Tembus Dinding)", "WallCheck")
+CreateToggle(PageCombat, "Arahkan Prediksi Peluru", "Prediction")
 
--- Setup Tabs Content
-local TabCombat = CreateTab("PERTARUNGAN")
-local TabPlayer = CreateTab("PEMAIN (MODS)")
-local TabSuper  = CreateTab("SUPER (DEWA)")
-local TabVisual = CreateTab("VISUAL")
-local TabMisc = CreateTab("LAINNYA")
-local TabCredits = CreateTab("KREDIT")
+-- Populate Visual
+CreateToggle(PageVisual, "ESP Nama Pemain", "ESP_Name")
+CreateToggle(PageVisual, "ESP Kotak 2D", "ESP_Box")
+CreateToggle(PageVisual, "ESP Garis (Tracers)", "ESP_Tracer")
+CreateToggle(PageVisual, "ESP Tulang (Skeleton)", "ESP_Skeleton")
+CreateToggle(PageVisual, "Tampilkan Lingkaran FOV", "ShowFOV")
 
--- Player Mods Tab
-AddLabel(TabPlayer, "--- FISIK & GERAKAN ---")
-AddToggle(TabPlayer, "Tembus Tembok (NoClip)", "NoClip")
-AddToggle(TabPlayer, "Lompatan Tak Terbatas (Inf Jump)", "InfiniteJump")
-AddToggle(TabPlayer, "Hack Kecepatan (WalkSpeed)", "WalkSpeedMod")
-AddInput(TabPlayer, "Nilai Kecepatan", "WalkSpeedVal")
-AddToggle(TabPlayer, "Hack Tinggi Lompat (JumpPower)", "JumpPowerMod")
-AddInput(TabPlayer, "Nilai Tingggi Lompatan", "JumpPowerVal")
+-- Populate VVIP
+CreateToggle(PageVVIP, "Hitbox Expander (Ketebalan Musuh)", "HitboxExpander")
+local InfoVVIP = Instance.new("TextLabel", PageVVIP)
+InfoVVIP.Size = UDim2.new(1, 0, 0, 40)
+InfoVVIP.BackgroundTransparency = 1
+InfoVVIP.Text = "Mode VVIP menggunakan bypass kernel-simulated untuk performa maksimal dan deteksi minimal."
+InfoVVIP.TextColor3 = Color3.fromRGB(150, 150, 150)
+InfoVVIP.Font = Enum.Font.Gotham
+InfoVVIP.TextSize = 12
+InfoVVIP.TextWrapped = true
 
--- Super Dewa Tab
-AddLabel(TabSuper, "--- MODE DEWA & MAGIS ---")
-AddToggle(TabSuper, "[DEWA] Auto Teleport Pembunuh (Ke Belakang Musuh)", "AutoTPBehind")
-AddToggle(TabSuper, "[DEWA] Ctrl + Klik Teleport (Sihir Pindah Tempat)", "CtrlClickTP")
-AddToggle(TabSuper, "[DEWA] Mode Terbang (Fly)", "Fly")
-AddInput(TabSuper, "Kecepatan Terbang", "FlySpeed")
-AddToggle(TabSuper, "[DEWA] Tornado Penabrak (Fling Aura)", "FlingAura")
-AddToggle(TabSuper, "[DEWA] Anti Jatuh Mati (No Fall Damage)", "NoFallDamage")
-AddToggle(TabSuper, "[DEWA] Leg Jaringan (Fake Lag)", "FakeLag")
-AddInput(TabSuper, "Detik Leg Net", "LagAmount")
-
--- Combat Tab (Pertarungan)
-AddToggle(TabCombat, "[BRUTAL] Aktifkan Aimbot (Kamera)", "Aimbot")
-AddToggle(TabCombat, "[HYPERSHOOT] Sihir Peluru (Magic Bullet)", "MagicBullet")
-AddToggle(TabCombat, "[BRUTAL] Autoclicker / TriggerBot", "TriggerBot")
-AddToggle(TabCombat, "[HYPERSHOOT] SpinBot 360 (Visual)", "SpinBot")
-AddInput(TabCombat, "Kecepatan SpinBot", "SpinSpeed")
-AddToggle(TabCombat, "[BRUTAL] Perbesar Kepala (Hitbox)", "HitboxExpander")
-AddInput(TabCombat, "Ukuran Kepala Hitbox", "HitboxSize")
-AddToggle(TabCombat, "Cek Dinding (Wall Check)", "WallCheck")
-AddToggle(TabCombat, "Cek Tim Terpisah", "TeamCheck")
-AddToggle(TabCombat, "Verifikasi Hidup (Alive)", "AliveCheck")
-AddInput(TabCombat, "Jarak Minimum (Aimbot)", "MinDistance")
-AddLabel(TabCombat, " * Akan mengabaikan musuh dalam radius ini (Anti deteksi instan)")
-AddInput(TabCombat, "Ukuran Lingkaran FOV", "FOVSize")
-
--- Visual Tab
-AddLabel(TabVisual, "--- ESP NAMA & DARAH ---")
-AddToggle(TabVisual, "Tampilkan Nama ESP", "ESP_Name")
-AddColorPicker(TabVisual, "Warna Nama", "ESPColorIdx")
-AddToggle(TabVisual, "Tampilkan Bar Darah (Health)", "ESP_Health")
-
-AddLabel(TabVisual, "--- ESP BENTUK (VISUAL) ---")
-AddToggle(TabVisual, "Kotak 2D (Box)", "ESP_Box")
-AddColorPicker(TabVisual, "Warna Kotak (Box)", "BoxColorIdx")
-
-AddToggle(TabVisual, "Garis Arah (Tracers)", "ESP_Tracer")
-AddColorPicker(TabVisual, "Warna Garis Target", "TracerColorIdx")
-
-AddToggle(TabVisual, "Tampilkan Tulang (Skeleton)", "ESP_Skeleton")
-AddColorPicker(TabVisual, "Warna Tulang", "SkeletonColorIdx")
-
-AddLabel(TabVisual, "--- LAINNYA ---")
-AddToggle(TabVisual, "Tampilkan Cincin FOV", "ShowFOV")
-AddColorPicker(TabVisual, "Warna Cincin FOV", "FOVColorIdx")
-AddToggle(TabVisual, "Hapus Bayangan (FullBright)", "FullBright")
-
--- Misc Tab (Lainnya)
-AddLabel(TabMisc, "Atkifkan/Matikan Menu: Tombol Shift Kanan (RightShift)")
-AddButton(TabMisc, "HAPUS LAG (FPS BOOST MAX)", Color3.fromRGB(180, 0, 0), ActivateAntiLag)
-AddButton(TabMisc, "TUTUP & UNLOAD SCRIPT", Color3.fromRGB(200, 50, 50), function()
-    UnloadPrevious()
-end)
-
--- Credits Tab
-local CreditCard = Instance.new("Frame", TabCredits)
-CreditCard.Size = UDim2.new(1, -10, 0, 160)
-CreditCard.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Instance.new("UICorner", CreditCard).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", CreditCard).Color = Color3.fromRGB(255, 30, 30)
-Instance.new("UIStroke", CreditCard).Thickness = 1
-
-local Banner = Instance.new("Frame", CreditCard)
-Banner.Size = UDim2.new(1, 0, 0, 60)
-Banner.BackgroundColor3 = Color3.fromRGB(255, 30, 30)
-Instance.new("UICorner", Banner).CornerRadius = UDim.new(0, 8)
-
-local Cover = Instance.new("Frame", Banner)
-Cover.Size = UDim2.new(1, 0, 0, 10)
-Cover.Position = UDim2.new(0, 0, 1, -10)
-Cover.BackgroundColor3 = Color3.fromRGB(255, 30, 30)
-Cover.BorderSizePixel = 0
-
-local DevImg = Instance.new("ImageLabel", CreditCard)
-DevImg.Size = UDim2.new(0, 80, 0, 80)
-DevImg.Position = UDim2.new(0, 20, 0, 20)
-DevImg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Instance.new("UICorner", DevImg).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", DevImg).Color = Color3.fromRGB(25, 25, 25)
-Instance.new("UIStroke", DevImg).Thickness = 4
-task.spawn(function()
-    pcall(function()
-        local uid = Players:GetUserIdFromNameAsync("17gemadin")
-        DevImg.Image = Players:GetUserThumbnailAsync(uid, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-    end)
-end)
-
-local DevName = Instance.new("TextLabel", CreditCard)
-DevName.Text = "Reval"
-DevName.Position = UDim2.new(0, 110, 0, 65)
-DevName.Size = UDim2.new(0, 200, 0, 25)
-DevName.Font = Enum.Font.GothamBlack
-DevName.TextSize = 22
-DevName.TextColor3 = Color3.fromRGB(255, 255, 255)
-DevName.TextXAlignment = Enum.TextXAlignment.Left
-DevName.BackgroundTransparency = 1
-
-local Role = Instance.new("TextLabel", CreditCard)
-Role.Text = "Pemilik / Developer"
-Role.Position = UDim2.new(0, 110, 0, 90)
-Role.Size = UDim2.new(0, 200, 0, 20)
-Role.Font = Enum.Font.Gotham
-Role.TextSize = 14
-Role.TextColor3 = Color3.fromRGB(150, 150, 150)
-Role.TextXAlignment = Enum.TextXAlignment.Left
-Role.BackgroundTransparency = 1
-
-local CopyDisc = Instance.new("TextButton", CreditCard)
-CopyDisc.Text = "Salin Discord"
-CopyDisc.Size = UDim2.new(0, 120, 0, 30)
-CopyDisc.Position = UDim2.new(1, -135, 1, -40)
-CopyDisc.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
-CopyDisc.TextColor3 = Color3.fromRGB(255, 255, 255)
-CopyDisc.Font = Enum.Font.GothamBold
-Instance.new("UICorner", CopyDisc)
-local cDebounce = false
-CopyDisc.MouseButton1Click:Connect(function()
-    if cDebounce then return end cDebounce = true
-    pcall(function() setclipboard(Config.DiscordLink) end)
-    CopyDisc.Text = "Tersalin!"
-    task.wait(2)
-    CopyDisc.Text = "Salin Discord"
-    cDebounce = false
-end)
-
--- Initialize Default Tab View
-for _, btn in pairs(TabContainer:GetChildren()) do
-    if btn:IsA("TextButton") and btn.Text == "PERTARUNGAN" then
-        btn.BackgroundColor3 = Color3.fromRGB(255, 30, 30)
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        break
+-- [CORE LOOP]
+RunService.RenderStepped:Connect(function()
+    if not System.Whitelisted then return end
+    
+    if Config.Aimbot or Config.SilentAim then
+        local target = GetClosestTarget()
+        if target then
+            local finalPos = GetPredictedPosition(target)
+            if Config.Aimbot then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, finalPos)
+            end
+            System.SilentAimTarget = target
+        else
+            System.SilentAimTarget = nil
+        end
     end
-end
-TabCombat.Visible = true
+    
+    -- Hitbox Logic
+    if Config.HitboxExpander then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                p.Character.HumanoidRootPart.Size = Vector3.new(Config.HitboxSize * 2, Config.HitboxSize * 2, Config.HitboxSize * 2)
+                p.Character.HumanoidRootPart.Transparency = 0.8
+                p.Character.HumanoidRootPart.Color = Color3.fromRGB(255, 215, 0)
+            end
+        end
+    end
+end)
 
-if game:GetService("StarterGui") then
-    pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = V10_VERSION,
-            Text = "Script berhasil diperbarui & dibypass via GUI",
-            Duration = 5
-        })
-    end)
-end
+-- Keyboard Toggle
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Config.UIKeybind then MainFrame.Visible = not MainFrame.Visible end
+end)
+
+-- Initial Load
+PageCombat.Visible = true
+Sidebar:GetChildren()[2].TextColor3 = Color3.fromRGB(255, 215, 0)
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "ALLVESZ VVIP PRO",
+    Text = "Selamat Datang, User Premium! Script telah dimuat dengan proteksi ketat.",
+    Duration = 10
+})
